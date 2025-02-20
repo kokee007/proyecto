@@ -5,7 +5,7 @@ class ItemPelicula extends StatelessWidget {
   final String textPeli;
   final String descripcio;
   final String imatge;
-  final bool valorCheckBox;
+  final bool valorCheckBox; // Indica si es favorito o no
   final ValueChanged<bool?>? canviaValorCheckbox;
   final Function(BuildContext)? esborraPeli;
 
@@ -45,7 +45,7 @@ class ItemPelicula extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Imagen: se intenta cargar la URL y, si falla, se muestra un contenedor con un ícono
+              // Imagen de la película
               Expanded(
                 child: imatge.isNotEmpty
                     ? Image.network(
@@ -53,22 +53,23 @@ class ItemPelicula extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.grey[300],
-                          child: Icon(
+                          child: const Icon(
                             Icons.broken_image,
                             size: 40,
-                            color: Colors.grey[600],
+                            color: Colors.grey,
                           ),
                         ),
                       )
                     : Container(
                         color: Colors.grey[300],
-                        child: Icon(
+                        child: const Icon(
                           Icons.movie,
                           size: 40,
-                          color: Colors.grey[600],
+                          color: Colors.grey,
                         ),
                       ),
               ),
+              // Título
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
@@ -82,6 +83,7 @@ class ItemPelicula extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              // Descripción
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
@@ -94,17 +96,22 @@ class ItemPelicula extends StatelessWidget {
                   ),
                 ),
               ),
-              // Fila inferior con checkbox para marcar como favorito
+              // Fila inferior con icono de corazón para marcar como favorito
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Checkbox(
-                    value: valorCheckBox,
-                    onChanged: canviaValorCheckbox,
-                    activeColor: Colors.teal,
+                  IconButton(
+                    icon: Icon(
+                      valorCheckBox ? Icons.favorite : Icons.favorite_border,
+                      color: valorCheckBox ? Colors.red : Colors.grey,
+                    ),
+                    onPressed: () {
+                      // Se invierte el estado y se llama al callback
+                      canviaValorCheckbox?.call(!valorCheckBox);
+                    },
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
