@@ -15,7 +15,7 @@ class Draww extends StatelessWidget {
           children: [
             // Encabezado personalizado con datos del usuario
             DrawerHeader(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Colors.grey, Colors.black],
                   begin: Alignment.topLeft,
@@ -71,7 +71,15 @@ class Draww extends StatelessWidget {
                   text: 'Películas',
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, '/pagina2', arguments: username);
+                    Navigator.pushNamed(context, '/all_movies_page', arguments: username);
+                  },
+                ),
+                _drawerItem(
+                  icon: Icons.category,
+                  text: 'Géneros',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/movies_by_genre_page', arguments: username);
                   },
                 ),
                 _drawerItem(

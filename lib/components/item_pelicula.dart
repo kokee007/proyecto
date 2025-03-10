@@ -10,14 +10,14 @@ class ItemPelicula extends StatelessWidget {
   final Function(BuildContext)? esborraPeli;
 
   const ItemPelicula({
-    Key? key,
+    super.key,
     required this.textPeli,
     required this.descripcio,
     required this.imatge,
     required this.valorCheckBox,
     required this.canviaValorCheckbox,
     required this.esborraPeli,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

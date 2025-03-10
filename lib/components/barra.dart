@@ -20,23 +20,6 @@ class Barra extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(width: 30),
           // Campo de búsqueda
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Buscar...',
-                hintStyle: const TextStyle(color: Colors.white70),
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                filled: true,
-                fillColor: Colors.grey[600],
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
           const SizedBox(width: 10),
           // Si ya hay un usuario logueado, se muestra su nombre
           if (username != null)
