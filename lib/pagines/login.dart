@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:proyecto/auth/servei_auth.dart';
+import 'package:proyecto/auth/servei_auth.dart'; // Asegúrate de que la ruta de importación sea correcta
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -9,31 +10,35 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final Box _boxUsuarios = Hive.box("box_usuarios");
-
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  void login() {
+  // Instancia del servicio de Firebase
+  final ServeiAuth _serveiAuth = ServeiAuth();
+
+  void login() async {
     String username = usernameController.text.trim();
     String password = passwordController.text;
 
-    List usuarios = _boxUsuarios.get("usuarios") ?? [];
-    bool autenticado = false;
-    for (var usuario in usuarios) {
-      if (usuario["username"] == username && usuario["password"] == password) {
-        autenticado = true;
-        break;
-      }
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Completa todos los campos")),
+      );
+      return;
     }
 
-    if (autenticado) {
-      Navigator.pushReplacementNamed(context, '/pagina1', arguments: username);
-    } else {
+    // Se intenta iniciar sesión usando el username y contraseña (Firebase)
+    String? error = await _serveiAuth.loginAmbUsernameIpassword(username, password);
+
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Usuario o contraseña incorrectos")),
+        SnackBar(content: Text(error)),
       );
+      return;
     }
+
+    // Si se inicia sesión correctamente, se navega a la siguiente pantalla
+    Navigator.pushReplacementNamed(context, '/pagina1', arguments: username);
   }
 
   void irARegistro() {
