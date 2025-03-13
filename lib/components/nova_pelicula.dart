@@ -44,37 +44,89 @@ class _NovaPeliculaState extends State<NovaPelicula> {
     _selectedGenre = _generos.first;
   }
 
+  // Función auxiliar para unificar la decoración de los campos
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: Colors.grey.shade800,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white70.withOpacity(0.5)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Agregar Nueva Película"),
+      backgroundColor: Colors.grey.shade900,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: const Text(
+        "Agregar Nueva Película",
+        style: TextStyle(
+          color: Colors.redAccent,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Campo Título
             TextField(
               controller: widget.tecTextPeli,
-              decoration: const InputDecoration(labelText: "Título"),
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration("Título"),
             ),
+            const SizedBox(height: 12),
+            // Campo Descripción
             TextField(
               controller: widget.tecTextDescripcio,
-              decoration: const InputDecoration(labelText: "Descripción"),
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration("Descripción"),
             ),
+            const SizedBox(height: 12),
+            // Campo URL Imagen
             TextField(
               controller: widget.tecTextImatge,
-              decoration: const InputDecoration(labelText: "URL Imagen"),
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration("URL Imagen"),
             ),
             const SizedBox(height: 16),
+            // Dropdown para seleccionar género
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Género",
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: Colors.grey.shade800,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white70.withOpacity(0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.redAccent),
+                ),
               ),
+              dropdownColor: Colors.grey.shade900,
               value: _selectedGenre,
               items: _generos.map((genero) {
                 return DropdownMenuItem<String>(
                   value: genero,
-                  child: Text(genero),
+                  child: Text(
+                    genero,
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 );
               }).toList(),
               onChanged: (value) {
@@ -87,13 +139,20 @@ class _NovaPeliculaState extends State<NovaPelicula> {
         ),
       ),
       actions: [
+        // Botón Cancelar
         TextButton(
           onPressed: widget.accioCancelar,
-          child: const Text("Cancelar"),
+          child: const Text(
+            "Cancelar",
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
+        // Botón Guardar
         ElevatedButton(
           onPressed: () {
-            // Se crea el objeto con el género seleccionado incluido
             final novaPeli = {
               "titol": widget.tecTextPeli.text,
               "descripcio": widget.tecTextDescripcio.text,
@@ -103,7 +162,16 @@ class _NovaPeliculaState extends State<NovaPelicula> {
             };
             widget.accioGuardar(novaPeli);
           },
-          child: const Text("Guardar"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.redAccent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text(
+            "Guardar",
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ],
     );

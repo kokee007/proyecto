@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/components/barra.dart';
 import 'package:proyecto/components/draww.dart';
-import 'package:hive/hive.dart';
 import 'package:proyecto/components/item_pelicula.dart';
 import 'package:proyecto/components/nova_pelicula.dart';
 import 'package:proyecto/data/base_de_dades.dart';
@@ -17,13 +16,10 @@ class AllMoviesPage extends StatefulWidget {
 }
 
 class _AllMoviesPageState extends State<AllMoviesPage> {
-  final Box _boxHive = Hive.box("box_pelicules");
-  BaseDeDades db = BaseDeDades();
-
+  final BaseDeDades db = BaseDeDades();
   bool editMode = false;
   bool isLoading = true;
 
-  // Paginación y búsqueda
   int _currentPage = 1;
   bool _isLoadingMore = false;
   String _searchQuery = "";
@@ -31,6 +27,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
   @override
   void initState() {
     super.initState();
+    db.carregarDades();
     _cargarPeliculasApi();
   }
 
@@ -38,8 +35,18 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
     try {
       final tmdbApi = TmdbApi();
       final rawMovies = await tmdbApi.fetchPopularMovies(page: _currentPage);
+
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
+        // Conservamos el estado "favorito" si ya existe en db.pelicules
+        bool favoriteStatus = false;
+        try {
+          final existing =
+              db.pelicules.firstWhere((m) => m["titol"] == movie.title);
+          favoriteStatus = existing["favorito"] ?? false;
+        } catch (e) {
+          favoriteStatus = false;
+        }
         return {
           "titol": movie.title,
           "descripcio": movie.overview,
@@ -53,7 +60,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
           "original_language": item["original_language"] ?? "",
           "runtime": item["runtime"]?.toString() ?? "",
           "tagline": item["tagline"] ?? "",
-          "favorito": false,
+          "favorito": favoriteStatus,
           "genre_ids": movie.genreIds,
         };
       }).toList();
@@ -78,17 +85,23 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
       _cargarPeliculasApi();
       return;
     }
-
     setState(() {
       isLoading = true;
       _searchQuery = query;
     });
-
     try {
       final tmdbApi = TmdbApi();
       final rawMovies = await tmdbApi.searchMovies(query: query, page: 1);
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
+        bool favoriteStatus = false;
+        try {
+          final existing =
+              db.pelicules.firstWhere((m) => m["titol"] == movie.title);
+          favoriteStatus = existing["favorito"] ?? false;
+        } catch (e) {
+          favoriteStatus = false;
+        }
         return {
           "titol": movie.title,
           "descripcio": movie.overview,
@@ -102,11 +115,10 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
           "original_language": item["original_language"] ?? "",
           "runtime": item["runtime"]?.toString() ?? "",
           "tagline": item["tagline"] ?? "",
-          "favorito": false,
+          "favorito": favoriteStatus,
           "genre_ids": movie.genreIds,
         };
       }).toList();
-
       setState(() {
         db.pelicules = moviesFromApi;
         isLoading = false;
@@ -133,6 +145,14 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
           : await tmdbApi.searchMovies(query: _searchQuery, page: _currentPage);
       List<Map<String, dynamic>> moviesFromApi = newMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
+        bool favoriteStatus = false;
+        try {
+          final existing =
+              db.pelicules.firstWhere((m) => m["titol"] == movie.title);
+          favoriteStatus = existing["favorito"] ?? false;
+        } catch (e) {
+          favoriteStatus = false;
+        }
         return {
           "titol": movie.title,
           "descripcio": movie.overview,
@@ -146,11 +166,10 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
           "original_language": item["original_language"] ?? "",
           "runtime": item["runtime"]?.toString() ?? "",
           "tagline": item["tagline"] ?? "",
-          "favorito": false,
+          "favorito": favoriteStatus,
           "genre_ids": movie.genreIds,
         };
       }).toList();
-
       setState(() {
         db.pelicules.addAll(moviesFromApi);
       });
@@ -164,10 +183,13 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
     }
   }
 
-  void canviaCheckbox(bool? valor, int posLlista) {
+  // Función simplificada para cambiar el favorito sin parámetro adicional
+  void canviaCheckbox(int posLlista) {
     setState(() {
-      final bool valorActual = db.pelicules[posLlista]["favorito"] ?? false;
-      db.pelicules[posLlista]["favorito"] = !valorActual;
+      db.pelicules[posLlista]["favorito"] =
+          !(db.pelicules[posLlista]["favorito"] ?? false);
+      print(
+          "Película '${db.pelicules[posLlista]["titol"]}' favorito: ${db.pelicules[posLlista]["favorito"]}");
     });
     db.actualitzarDades();
   }
@@ -202,8 +224,10 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
     );
   }
 
-  void _mostrarDialogoEdicionDB(int index) {
-    final movie = db.pelicules[index];
+  void _mostrarDialogoEdicionDB(Map<String, dynamic> movie) {
+    final int indice = db.pelicules.indexWhere((p) => p["titol"] == movie["titol"]);
+    if (indice == -1) return;
+
     TextEditingController titleController = TextEditingController(text: movie["titol"]);
     TextEditingController descController = TextEditingController(text: movie["descripcio"]);
     TextEditingController imageController = TextEditingController(text: movie["imatge"]);
@@ -227,9 +251,9 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  db.pelicules[index]["titol"] = titleController.text;
-                  db.pelicules[index]["descripcio"] = descController.text;
-                  db.pelicules[index]["imatge"] = imageController.text;
+                  db.pelicules[indice]["titol"] = titleController.text;
+                  db.pelicules[indice]["descripcio"] = descController.text;
+                  db.pelicules[indice]["imatge"] = imageController.text;
                 });
                 db.actualitzarDades();
                 Navigator.pop(context);
@@ -311,7 +335,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
                 },
               ),
             ),
-            // Grid único que muestra todas las películas
+            // Grid de películas
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: GridView.builder(
@@ -343,7 +367,8 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
                           descripcio: movie["descripcio"] ?? '',
                           imatge: movie["imatge"] ?? '',
                           valorCheckBox: movie["favorito"] ?? false,
-                          canviaValorCheckbox: (valor) => canviaCheckbox(valor, index),
+                          // Se llama al callback simplificado sin parámetro adicional
+                          canviaValorCheckbox: (_) => canviaCheckbox(index),
                           esborraPeli: (context) => esborraPeli(index),
                         ),
                       ),
@@ -353,7 +378,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
                           right: 0,
                           child: IconButton(
                             icon: const Icon(Icons.edit, size: 20, color: Colors.white),
-                            onPressed: () => _mostrarDialogoEdicionDB(index),
+                            onPressed: () => _mostrarDialogoEdicionDB(movie),
                           ),
                         ),
                     ],
@@ -361,7 +386,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
                 },
               ),
             ),
-            // Botón para cargar más películas (paginación)
+            // Botón para cargar más películas
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(

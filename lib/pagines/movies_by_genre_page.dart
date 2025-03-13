@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/components/barra.dart';
 import 'package:proyecto/components/draww.dart';
-import 'package:hive/hive.dart';
 import 'package:proyecto/components/item_pelicula.dart';
 import 'package:proyecto/components/nova_pelicula.dart';
 import 'package:proyecto/data/base_de_dades.dart';
@@ -17,9 +16,7 @@ class MoviesByGenrePage extends StatefulWidget {
 }
 
 class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
-  final Box _boxHive = Hive.box("box_pelicules");
-  BaseDeDades db = BaseDeDades();
-
+  final BaseDeDades db = BaseDeDades();
   bool editMode = false;
   bool isLoading = true;
 
@@ -27,7 +24,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   bool _isLoadingMore = false;
   String _searchQuery = "";
 
-  // Mapeo de ID de género a nombre
+  // Mapeo de ID de género a nombre obtenido de la API
   Map<int, String> _genreMapping = {};
 
   // Agrupación: mapa de género a lista de películas
@@ -36,13 +33,15 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   @override
   void initState() {
     super.initState();
+    // Cargamos datos previamente guardados (para conservar favoritos)
+    db.carregarDades();
     _cargarPeliculasApi();
   }
 
   Future<void> _cargarPeliculasApi() async {
     try {
       final tmdbApi = TmdbApi();
-      // Se carga la primera página de películas y la lista de géneros
+      // Cargamos la primera página de películas y la lista de géneros
       final rawMovies = await tmdbApi.fetchPopularMovies(page: _currentPage);
       final rawGenres = await tmdbApi.fetchGenres();
 
@@ -53,21 +52,30 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       }
       _genreMapping = genreMapping;
 
-      // Convertimos cada película a un Map con la estructura de la app
+      // Convertimos cada película a un Map
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
+        // Conservamos el estado "favorito" si ya existía en db.pelicules
+        bool favoriteStatus = false;
+        try {
+          final existing = db.pelicules.firstWhere((m) => m["titol"] == movie.title);
+          favoriteStatus = existing["favorito"] ?? false;
+        } catch (e) {
+          favoriteStatus = false;
+        }
         return {
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
               ? 'https://image.tmdb.org/t/p/w200${movie.posterPath}'
               : '',
-          "favorito": false,
+          "favorito": favoriteStatus,
           "genre_ids": movie.genreIds,
         };
       }).toList();
 
       setState(() {
+        // Actualizamos la lista de películas en db y agrupamos por género
         db.pelicules = moviesFromApi;
         _inicializarMoviesByGenre();
         isLoading = false;
@@ -81,11 +89,10 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     }
   }
 
-  // Agrupa las películas en db.pelicules según su género
+  // Agrupa las películas en db.pelicules según sus géneros
   void _inicializarMoviesByGenre() {
     moviesByGenre = {};
     for (var movie in db.pelicules) {
-      // Obtenemos la lista de IDs de géneros
       List<dynamic> genreIds = movie["genre_ids"] ?? [];
       for (var id in genreIds) {
         final genreName = _genreMapping[id] ?? "Sin género";
@@ -113,13 +120,20 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       final rawMovies = await tmdbApi.searchMovies(query: query, page: 1);
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
+        bool favoriteStatus = false;
+        try {
+          final existing = db.pelicules.firstWhere((m) => m["titol"] == movie.title);
+          favoriteStatus = existing["favorito"] ?? false;
+        } catch (e) {
+          favoriteStatus = false;
+        }
         return {
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
               ? 'https://image.tmdb.org/t/p/w200${movie.posterPath}'
               : '',
-          "favorito": false,
+          "favorito": favoriteStatus,
           "genre_ids": movie.genreIds,
         };
       }).toList();
@@ -150,13 +164,20 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
           : await tmdbApi.searchMovies(query: _searchQuery, page: _currentPage);
       List<Map<String, dynamic>> moviesFromApi = newMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
+        bool favoriteStatus = false;
+        try {
+          final existing = db.pelicules.firstWhere((m) => m["titol"] == movie.title);
+          favoriteStatus = existing["favorito"] ?? false;
+        } catch (e) {
+          favoriteStatus = false;
+        }
         return {
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
               ? 'https://image.tmdb.org/t/p/w200${movie.posterPath}'
               : '',
-          "favorito": false,
+          "favorito": favoriteStatus,
           "genre_ids": movie.genreIds,
         };
       }).toList();
@@ -213,8 +234,10 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     );
   }
 
-  void _mostrarDialogoEdicionDB(int globalIndex) {
-    final movie = db.pelicules[globalIndex];
+  void _mostrarDialogoEdicionDB(Map<String, dynamic> movie) {
+    final int indice = db.pelicules.indexWhere((p) => p["titol"] == movie["titol"]);
+    if (indice == -1) return;
+
     TextEditingController titleController = TextEditingController(text: movie["titol"]);
     TextEditingController descController = TextEditingController(text: movie["descripcio"]);
     TextEditingController imageController = TextEditingController(text: movie["imatge"]);
@@ -238,9 +261,9 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  db.pelicules[globalIndex]["titol"] = titleController.text;
-                  db.pelicules[globalIndex]["descripcio"] = descController.text;
-                  db.pelicules[globalIndex]["imatge"] = imageController.text;
+                  db.pelicules[indice]["titol"] = titleController.text;
+                  db.pelicules[indice]["descripcio"] = descController.text;
+                  db.pelicules[indice]["imatge"] = imageController.text;
                   _inicializarMoviesByGenre();
                 });
                 db.actualitzarDades();
@@ -264,7 +287,6 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    // En esta página se muestran las películas agrupadas por género
     return Scaffold(
       appBar: Barra(username: username),
       drawer: Draww(username: username),
