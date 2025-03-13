@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:proyecto/auth/servei_auth.dart';
+import 'package:proyecto/auth/servei_auth.dart'; // Asegúrate de que la ruta de importación sea la correcta
 
 class RegistroPage extends StatefulWidget {
-  const RegistroPage({super.key});
+  const RegistroPage({Key? key}) : super(key: key);
 
   @override
   State<RegistroPage> createState() => _RegistroPageState();
 }
 
 class _RegistroPageState extends State<RegistroPage> {
-  final Box _boxUsuarios = Hive.box("box_usuarios");
-
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
-  void register() {
+  final ServeiAuth _serveiAuth = ServeiAuth();
+
+  void register() async {
+    String email = emailController.text.trim();
     String username = usernameController.text.trim();
     String password = passwordController.text;
     String confirmPassword = confirmPasswordController.text;
 
-    if (username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (email.isEmpty || username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Completa todos los campos")),
       );
@@ -34,21 +37,21 @@ class _RegistroPageState extends State<RegistroPage> {
       return;
     }
 
-    List usuarios = _boxUsuarios.get("usuarios") ?? [];
-    bool existe = usuarios.any((usuario) => usuario["username"] == username);
-    if (existe) {
+    // Llamada al método de registro con los tres argumentos: email, password y username.
+    String? error = await _serveiAuth.registreAmbEmailIPassword(email, password, username);
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("El usuario ya existe")),
+        SnackBar(content: Text(error)),
       );
       return;
     }
 
-    usuarios.add({"username": username, "password": password});
-    _boxUsuarios.put("usuarios", usuarios);
-
+    // Mostrar mensaje de éxito al crear el usuario.
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Registro exitoso, por favor inicia sesión")),
+      const SnackBar(content: Text("Usuario creado correctamente")),
     );
+
+    // Opcional: volver a la pantalla anterior.
     Navigator.pop(context);
   }
 
@@ -96,7 +99,28 @@ class _RegistroPageState extends State<RegistroPage> {
                       color: Colors.blueAccent,
                     ),
                     const SizedBox(height: 24),
-                    // Campo de texto para el usuario
+                    // Campo de texto para el email
+                    TextField(
+                      controller: emailController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        labelStyle: const TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.email, color: Colors.blueAccent),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white70),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.redAccent),
+                        ),
+                        fillColor: Colors.grey.shade800,
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Campo de texto para el nombre de usuario
                     TextField(
                       controller: usernameController,
                       style: const TextStyle(color: Colors.white),
