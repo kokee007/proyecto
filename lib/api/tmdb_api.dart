@@ -1,5 +1,5 @@
-// En tmdb_api.dart
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class TmdbApi {
@@ -39,7 +39,6 @@ class TmdbApi {
     }
   }
 
-  // Nuevo método para obtener próximos estrenos
   Future<List<dynamic>> fetchUpcomingMovies({int page = 1}) async {
     final url = Uri.parse('$_baseUrl/movie/upcoming?api_key=$_apiKey&page=$page&language=es-ES');
     final response = await http.get(url);
@@ -49,5 +48,27 @@ class TmdbApi {
     } else {
       throw Exception('Error al cargar próximos estrenos');
     }
+  }
+
+  // Método para obtener la clave del trailer de una película
+  Future<String?> fetchTrailerKey({required int movieId}) async {
+    final url = Uri.parse('$_baseUrl/movie/$movieId/videos?api_key=$_apiKey&language=en-US');
+    final response = await http.get(url);
+    debugPrint("Respuesta de videos para movieId $movieId: ${response.body}");
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List videos = data['results'];
+      // Se busca el primer video que sea Trailer o Teaser y que esté en YouTube.
+      final trailer = videos.firstWhere(
+        (video) =>
+            (video['type'] == 'Trailer' || video['type'] == 'Teaser') &&
+            video['site'] == 'YouTube',
+        orElse: () => null,
+      );
+      if (trailer != null) {
+        return trailer['key'];
+      }
+    }
+    return null;
   }
 }
