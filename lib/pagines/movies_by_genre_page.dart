@@ -27,10 +27,10 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   bool _isLoadingMore = false;
   String _searchQuery = "";
 
-  // Mapeo de ID de género a nombre
+  // Mapeo de ID de género a nombre.
   Map<int, String> _genreMapping = {};
 
-  // Agrupación: mapa de género a lista de películas
+  // Agrupación: mapa de género a lista de películas.
   Map<String, List<Map<String, dynamic>>> moviesByGenre = {};
 
   @override
@@ -42,26 +42,34 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   Future<void> _cargarPeliculasApi() async {
     try {
       final tmdbApi = TmdbApi();
-      // Se carga la primera página de películas y la lista de géneros
+      // Carga la primera página de películas y la lista de géneros.
       final rawMovies = await tmdbApi.fetchPopularMovies(page: _currentPage);
       final rawGenres = await tmdbApi.fetchGenres();
 
-      // Construimos el mapeo de ID a nombre de género
+      // Construimos el mapeo de ID a nombre de género.
       Map<int, String> genreMapping = {};
       for (var g in rawGenres) {
         genreMapping[g['id']] = g['name'];
       }
       _genreMapping = genreMapping;
 
-      // Convertimos cada película a un Map con la estructura de la app
+      // Convertimos cada película a un Map.
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id aquí.
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
               ? 'https://image.tmdb.org/t/p/w200${movie.posterPath}'
               : '',
+          "release_date": item["release_date"] ?? "",
+          "vote_average": item["vote_average"]?.toString() ?? "",
+          "vote_count": item["vote_count"]?.toString() ?? "",
+          "popularity": item["popularity"]?.toString() ?? "",
+          "original_language": item["original_language"] ?? "",
+          "runtime": item["runtime"]?.toString() ?? "",
+          "tagline": item["tagline"] ?? "",
           "favorito": false,
           "genre_ids": movie.genreIds,
         };
@@ -81,11 +89,11 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     }
   }
 
-  // Agrupa las películas en db.pelicules según su género
+  // Agrupa las películas según su género.
   void _inicializarMoviesByGenre() {
     moviesByGenre = {};
     for (var movie in db.pelicules) {
-      // Obtenemos la lista de IDs de géneros
+      // Obtenemos la lista de IDs de géneros.
       List<dynamic> genreIds = movie["genre_ids"] ?? [];
       for (var id in genreIds) {
         final genreName = _genreMapping[id] ?? "Sin género";
@@ -114,11 +122,19 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id aquí también.
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
               ? 'https://image.tmdb.org/t/p/w200${movie.posterPath}'
               : '',
+          "release_date": item["release_date"] ?? "",
+          "vote_average": item["vote_average"]?.toString() ?? "",
+          "vote_count": item["vote_count"]?.toString() ?? "",
+          "popularity": item["popularity"]?.toString() ?? "",
+          "original_language": item["original_language"] ?? "",
+          "runtime": item["runtime"]?.toString() ?? "",
+          "tagline": item["tagline"] ?? "",
           "favorito": false,
           "genre_ids": movie.genreIds,
         };
@@ -151,11 +167,19 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       List<Map<String, dynamic>> moviesFromApi = newMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id aquí también.
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
               ? 'https://image.tmdb.org/t/p/w200${movie.posterPath}'
               : '',
+          "release_date": item["release_date"] ?? "",
+          "vote_average": item["vote_average"]?.toString() ?? "",
+          "vote_count": item["vote_count"]?.toString() ?? "",
+          "popularity": item["popularity"]?.toString() ?? "",
+          "original_language": item["original_language"] ?? "",
+          "runtime": item["runtime"]?.toString() ?? "",
+          "tagline": item["tagline"] ?? "",
           "favorito": false,
           "genre_ids": movie.genreIds,
         };
@@ -213,8 +237,8 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     );
   }
 
-  void _mostrarDialogoEdicionDB(int globalIndex) {
-    final movie = db.pelicules[globalIndex];
+  void _mostrarDialogoEdicionDB(int index) {
+    final movie = db.pelicules[index];
     TextEditingController titleController = TextEditingController(text: movie["titol"]);
     TextEditingController descController = TextEditingController(text: movie["descripcio"]);
     TextEditingController imageController = TextEditingController(text: movie["imatge"]);
@@ -238,9 +262,9 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  db.pelicules[globalIndex]["titol"] = titleController.text;
-                  db.pelicules[globalIndex]["descripcio"] = descController.text;
-                  db.pelicules[globalIndex]["imatge"] = imageController.text;
+                  db.pelicules[index]["titol"] = titleController.text;
+                  db.pelicules[index]["descripcio"] = descController.text;
+                  db.pelicules[index]["imatge"] = imageController.text;
                   _inicializarMoviesByGenre();
                 });
                 db.actualitzarDades();
@@ -264,7 +288,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    // En esta página se muestran las películas agrupadas por género
+    // Se muestran las películas agrupadas por género.
     return Scaffold(
       appBar: Barra(username: username),
       drawer: Draww(username: username),
@@ -292,7 +316,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Campo de búsqueda
+            // Campo de búsqueda.
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextField(
@@ -321,7 +345,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
                 },
               ),
             ),
-            // Se muestran las películas agrupadas por género:
+            // Se muestran las películas agrupadas por género.
             ...moviesByGenre.entries.map((entry) {
               final genre = entry.key;
               final movieList = entry.value;
@@ -351,8 +375,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            DetallePelicula(movie: movie),
+                                        builder: (context) => DetallePelicula(movie: movie),
                                       ),
                                     );
                                   },
@@ -363,8 +386,8 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
                                       descripcio: movie["descripcio"],
                                       imatge: movie["imatge"],
                                       valorCheckBox: movie["favorito"],
-                                      canviaValorCheckbox: (_) {},
-                                      esborraPeli: (_) {},
+                                      canviaValorCheckbox: (valor) => canviaCheckbox(valor, db.pelicules.indexOf(movie)),
+                                      esborraPeli: (context) => esborraPeli(db.pelicules.indexOf(movie)),
                                     ),
                                   ),
                                 ),
@@ -373,11 +396,9 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
                                     top: 0,
                                     right: 0,
                                     child: IconButton(
-                                      icon: const Icon(Icons.edit,
-                                          size: 20, color: Colors.white),
+                                      icon: const Icon(Icons.edit, size: 20, color: Colors.white),
                                       onPressed: () {
-                                        final globalIndex =
-                                            db.pelicules.indexOf(movie);
+                                        final globalIndex = db.pelicules.indexOf(movie);
                                         _mostrarDialogoEdicionDB(globalIndex);
                                       },
                                     ),
@@ -392,7 +413,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
                 ),
               );
             }),
-            // Botón para cargar más películas (paginación)
+            // Botón para cargar más películas (paginación).
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
