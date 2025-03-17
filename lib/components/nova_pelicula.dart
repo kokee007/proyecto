@@ -4,7 +4,7 @@ class NovaPelicula extends StatefulWidget {
   final TextEditingController tecTextPeli;
   final TextEditingController tecTextDescripcio;
   final TextEditingController tecTextImatge;
-  final Function(Map<String, dynamic>) accioGuardar;
+  final Function(Map<String, dynamic> novaPeli) accioGuardar;
   final VoidCallback accioCancelar;
 
   const NovaPelicula({
@@ -17,54 +17,71 @@ class NovaPelicula extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<NovaPelicula> createState() => _NovaPeliculaState();
+  _NovaPeliculaState createState() => _NovaPeliculaState();
 }
 
 class _NovaPeliculaState extends State<NovaPelicula> {
-  bool isFavorite = false;
+  // Lista de géneros disponibles
+  final List<String> _generos = [
+    'Acción',
+    'Drama',
+    'Comedia',
+    'Terror',
+    'Thriller',
+    'Romance',
+    'Ciencia Ficción',
+    'Fantasía',
+    'Aventura',
+    'Documental'
+  ];
+
+  // Género seleccionado (por defecto el primero de la lista)
+  String? _selectedGenre;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedGenre = _generos.first;
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Nueva Película"),
+      title: const Text("Agregar Nueva Película"),
       content: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: widget.tecTextPeli,
-              decoration: const InputDecoration(
-                labelText: "Título",
-              ),
+              decoration: const InputDecoration(labelText: "Título"),
             ),
-            const SizedBox(height: 8),
             TextField(
               controller: widget.tecTextDescripcio,
-              decoration: const InputDecoration(
-                labelText: "Descripción",
-              ),
-              maxLines: 3,
+              decoration: const InputDecoration(labelText: "Descripción"),
             ),
-            const SizedBox(height: 8),
             TextField(
               controller: widget.tecTextImatge,
-              decoration: const InputDecoration(
-                labelText: "URL de la imagen",
-              ),
+              decoration: const InputDecoration(labelText: "URL Imagen"),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Checkbox(
-                  value: isFavorite,
-                  onChanged: (valor) {
-                    setState(() {
-                      isFavorite = valor ?? false;
-                    });
-                  },
-                  activeColor: Colors.teal,
-                ),
-                const Text("Marcar como favorito"),
-              ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: "Género",
+                border: OutlineInputBorder(),
+              ),
+              value: _selectedGenre,
+              items: _generos.map((genero) {
+                return DropdownMenuItem<String>(
+                  value: genero,
+                  child: Text(genero),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedGenre = value;
+                });
+              },
             ),
           ],
         ),
@@ -76,18 +93,13 @@ class _NovaPeliculaState extends State<NovaPelicula> {
         ),
         ElevatedButton(
           onPressed: () {
-            // Verificamos que se ingrese al menos el título
-            if (widget.tecTextPeli.text.trim().isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("El título es obligatorio")),
-              );
-              return;
-            }
-            Map<String, dynamic> novaPeli = {
-              "titol": widget.tecTextPeli.text.trim(),
-              "descripcio": widget.tecTextDescripcio.text.trim(),
-              "imatge": widget.tecTextImatge.text.trim(),
-              "favorito": isFavorite,
+            // Se crea el objeto con el género seleccionado incluido
+            final novaPeli = {
+              "titol": widget.tecTextPeli.text,
+              "descripcio": widget.tecTextDescripcio.text,
+              "imatge": widget.tecTextImatge.text,
+              "favorito": false,
+              "genero": _selectedGenre ?? "Sin género",
             };
             widget.accioGuardar(novaPeli);
           },

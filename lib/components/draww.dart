@@ -9,54 +9,57 @@ class Draww extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Encabezado personalizado con datos del usuario
-            DrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.grey, Colors.black],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+      // Fondo general negro para el Drawer
+      backgroundColor: Colors.black,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Encabezado con degradado de gris oscuro a negro
+          DrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.grey.shade900, Colors.black87],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundImage: AssetImage('assets/images/profile.jpg'),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Avatar del usuario
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.grey.shade700,
+                  backgroundImage: const AssetImage('assets/images/profile.jpg'),
+                ),
+                const SizedBox(height: 10),
+                // Nombre del usuario
+                Text(
+                  username ?? 'Usuario',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 10),
+                ),
+                // Email (si está disponible)
+                if (email != null && email!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    username ?? 'Usuario',
+                    email!,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Flexible(
-                    child: Text(
-                      email ?? '',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.visible,
+                      color: Colors.white70,
+                      fontSize: 14,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(height: 30),
-            // Opciones del Drawer
-            ListView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+          ),
+          // Opciones del Drawer
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
                 _drawerItem(
                   icon: Icons.home,
@@ -71,58 +74,95 @@ class Draww extends StatelessWidget {
                   text: 'Películas',
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, '/pagina2', arguments: username);
+                    Navigator.pushNamed(context, '/all_movies_page', arguments: username);
+                  },
+                ),
+                _drawerItem(
+                  icon: Icons.category,
+                  text: 'Géneros',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/movies_by_genre_page', arguments: username);
                   },
                 ),
                 _drawerItem(
                   icon: Icons.favorite,
                   text: 'Favoritos',
-                  onTap: () {},
+                  onTap: () {
+                    // Acción a pantalla de favoritos
+                  },
                 ),
                 _drawerItem(
                   icon: Icons.settings,
                   text: 'Configuración',
-                  onTap: () {},
+                  onTap: () {
+                    // Acción a pantalla de configuración
+                  },
+                ),
+                const Divider(
+                  color: Colors.white54,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+                _drawerItem(
+                  icon: Icons.info,
+                  text: 'Acerca de',
+                  onTap: () {
+                    // Acción a pantalla "Acerca de"
+                  },
                 ),
               ],
             ),
-            // Botón de cierre de sesión
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // Navegar al login eliminando todas las rutas anteriores.
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (Route<dynamic> route) => false,
-                  );
-                },
-                icon: const Icon(Icons.logout),
-                label: const Text('Cerrar sesión'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(50),
+          ),
+          // Botón "Cerrar sesión"
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (Route<dynamic> route) => false,
+                );
+              },
+              icon: const Icon(Icons.logout, color: Colors.white),
+              label: const Text(
+                'Cerrar sesión',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
+  // Método auxiliar para crear cada ítem del Drawer
   Widget _drawerItem({
     required IconData icon,
     required String text,
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: Colors.blue),
+      leading: Icon(icon, color: Colors.blueAccent),
       title: Text(
         text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
       ),
       onTap: onTap,
     );
