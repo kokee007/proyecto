@@ -41,6 +41,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id aquí
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -90,6 +91,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id aquí también
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -134,6 +136,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
       List<Map<String, dynamic>> moviesFromApi = newMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id aquí también
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -311,7 +314,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
                 },
               ),
             ),
-            // Grid único que muestra todas las películas
+            // Grid que muestra todas las películas
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: GridView.builder(
