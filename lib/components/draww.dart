@@ -4,7 +4,7 @@ class Draww extends StatelessWidget {
   final String? username;
   final String? email;
 
-  const Draww({super.key, this.username, this.email});
+  const Draww({Key? key, this.username, this.email}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -89,14 +89,16 @@ class Draww extends StatelessWidget {
                   icon: Icons.favorite,
                   text: 'Favoritos',
                   onTap: () {
-                    // Acción a pantalla de favoritos
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/favoritos', arguments: username);
                   },
                 ),
                 _drawerItem(
                   icon: Icons.settings,
                   text: 'Configuración',
                   onTap: () {
-                    // Acción a pantalla de configuración
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/configuracion', arguments: username);
                   },
                 ),
                 const Divider(
@@ -109,7 +111,8 @@ class Draww extends StatelessWidget {
                   icon: Icons.info,
                   text: 'Acerca de',
                   onTap: () {
-                    // Acción a pantalla "Acerca de"
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/acerca_de', arguments: username);
                   },
                 ),
               ],
@@ -123,7 +126,7 @@ class Draww extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/login',
-                  (Route<dynamic> route) => false,
+                      (Route<dynamic> route) => false,
                 );
               },
               icon: const Icon(Icons.logout, color: Colors.white),
@@ -148,7 +151,7 @@ class Draww extends StatelessWidget {
     );
   }
 
-  // Método auxiliar para crear cada ítem del Drawer
+  // Método auxiliar para crear cada ítem del Drawer.
   Widget _drawerItem({
     required IconData icon,
     required String text,

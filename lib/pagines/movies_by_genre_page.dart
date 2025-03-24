@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/components/barra.dart';
 import 'package:proyecto/components/draww.dart';
@@ -198,15 +200,36 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     }
   }
 
-  void canviaCheckbox(bool? valor, int posLlista) {
-    setState(() {
-      final bool valorActual = db.pelicules[posLlista]["favorito"] ?? false;
-      db.pelicules[posLlista]["favorito"] = !valorActual;
-    });
-    db.actualitzarDades();
+ 
+  // Función para actualizar favoritos en Firebase.
+  Future<void> toggleFavoriteFirebase(Map<String, dynamic> movie, bool isFavorite) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final String docId = '${user.uid}_${movie["id"]}';
+    final CollectionReference favoritesCollection =
+    FirebaseFirestore.instance.collection("favoritos");
+    if (isFavorite) {
+      await favoritesCollection.doc(docId).set({
+        "userId": user.uid,
+        "movie": movie,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+    } else {
+      await favoritesCollection.doc(docId).delete();
+    }
   }
 
-  void esborraPeli(int posLlista) {
+  void canviaCheckbox(bool? valor, int posLlista) async {
+    final bool valorActual = db.pelicules[posLlista]["favorito"] ?? false;
+    final bool nuevoValor = !valorActual;
+    setState(() {
+      db.pelicules[posLlista]["favorito"] = nuevoValor;
+    });
+    await toggleFavoriteFirebase(db.pelicules[posLlista], nuevoValor);
+  }
+
+  // Renombramos la función para eliminar película a removePeli para evitar conflicto.
+  void removePeli(int posLlista) {
     setState(() {
       db.pelicules.removeAt(posLlista);
     });
@@ -387,7 +410,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
                                       imatge: movie["imatge"],
                                       valorCheckBox: movie["favorito"],
                                       canviaValorCheckbox: (valor) => canviaCheckbox(valor, db.pelicules.indexOf(movie)),
-                                      esborraPeli: (context) => esborraPeli(db.pelicules.indexOf(movie)),
+                                      esborraPeli: (context) => removePeli(db.pelicules.indexOf(movie)),
                                     ),
                                   ),
                                 ),
