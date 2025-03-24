@@ -26,11 +26,15 @@ class Draww extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Avatar del usuario
+                // Avatar con ícono para evitar assets locales
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.grey.shade700,
-                  backgroundImage: const AssetImage('assets/images/profile.jpg'),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 40,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 // Nombre del usuario
@@ -89,14 +93,22 @@ class Draww extends StatelessWidget {
                   icon: Icons.favorite,
                   text: 'Favoritos',
                   onTap: () {
-                    // Acción a pantalla de favoritos
+                    // Configura la ruta para Favoritos según tu implementación
+                  },
+                ),
+                _drawerItem(
+                  icon: Icons.newspaper,
+                  text: 'Noticias',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/noticias');
                   },
                 ),
                 _drawerItem(
                   icon: Icons.settings,
                   text: 'Configuración',
                   onTap: () {
-                    // Acción a pantalla de configuración
+                    // Configura la ruta de Configuración si la tienes
                   },
                 ),
                 const Divider(
@@ -109,7 +121,7 @@ class Draww extends StatelessWidget {
                   icon: Icons.info,
                   text: 'Acerca de',
                   onTap: () {
-                    // Acción a pantalla "Acerca de"
+                    // Configura la ruta "Acerca de" si la tienes
                   },
                 ),
               ],

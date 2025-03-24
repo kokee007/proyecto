@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/firebase_options.dart';
+import 'package:proyecto/pagines/noticias.dart'; // Importa la página de noticias
 import 'package:proyecto/pagines/pagina1.dart';
 import 'package:proyecto/pagines/pagina2.dart';
 import 'package:proyecto/pagines/login.dart';
@@ -12,11 +13,11 @@ import 'package:proyecto/pagines/movies_by_genre_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options:  DefaultFirebaseOptions.currentPlatform,
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   await Hive.initFlutter();
   await Hive.openBox("box_pelicules");
-  await Hive.openBox("box_usuarios"); // Nueva caja para usuarios
+  await Hive.openBox("box_usuarios");
   runApp(const MainApp());
 }
 
@@ -27,7 +28,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // Para que el usuario primero se autentique:
+      // Autenticación primero:
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
@@ -37,6 +38,7 @@ class MainApp extends StatelessWidget {
         '/pagina2': (context) => const Pagina2(),
         '/all_movies_page': (context) => const AllMoviesPage(),
         '/movies_by_genre_page': (context) => const MoviesByGenrePage(),
+        '/noticias': (context) => const Noticias(), // Nueva ruta para la página de noticias
       },
     );
   }
