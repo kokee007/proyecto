@@ -31,7 +31,13 @@ class TmdbApi {
 
 Future<void> main() async {
   final api = TmdbApi();
-  // Probamos con el id 550 (por ejemplo, Fight Club)
-  final trailerKey = await api.fetchTrailerKey(movieId: 550);
-  print("Trailer key para movieId 550: $trailerKey");
+
+  // Supongamos que movieId viene de algún lugar, pero podría ser nulo.
+  int? movieId;
+  
+  // Si movieId es nulo, asignamos el valor por defecto 550.
+  final int validMovieId = movieId ?? 550;
+
+  final trailerKey = await api.fetchTrailerKey(movieId: validMovieId);
+  print("Trailer key para movieId $validMovieId: $trailerKey");
 }
