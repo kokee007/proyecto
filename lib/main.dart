@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/firebase_options.dart';
+import 'package:proyecto/pagines/favoritos.dart';
 import 'package:proyecto/pagines/pagina1.dart';
 import 'package:proyecto/pagines/pagina2.dart';
 import 'package:proyecto/pagines/login.dart';
@@ -37,6 +38,7 @@ class MainApp extends StatelessWidget {
         '/pagina2': (context) => const Pagina2(),
         '/all_movies_page': (context) => const AllMoviesPage(),
         '/movies_by_genre_page': (context) => const MoviesByGenrePage(),
+        '/favoritos': (context) => const FavoritosPage(),
       },
     );
   }
