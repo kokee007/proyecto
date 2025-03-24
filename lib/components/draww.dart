@@ -109,7 +109,7 @@ class Draww extends StatelessWidget {
                   icon: Icons.settings,
                   text: 'Configuración',
                   onTap: () {
-                    // Acción a pantalla de configuración
+                    // Configura la ruta de Configuración si la tienes
                   },
                 ),
                 const Divider(
@@ -122,7 +122,7 @@ class Draww extends StatelessWidget {
                   icon: Icons.info,
                   text: 'Acerca de',
                   onTap: () {
-                    // Acción a pantalla "Acerca de"
+                    // Configura la ruta "Acerca de" si la tienes
                   },
                 ),
               ],
