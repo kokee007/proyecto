@@ -13,11 +13,11 @@ import 'package:proyecto/pagines/movies_by_genre_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options:  DefaultFirebaseOptions.currentPlatform,
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   await Hive.initFlutter();
   await Hive.openBox("box_pelicules");
-  await Hive.openBox("box_usuarios"); // Nueva caja para usuarios
+  await Hive.openBox("box_usuarios");
   runApp(const MainApp());
 }
 
@@ -28,7 +28,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // Para que el usuario primero se autentique:
+      // Autenticación primero:
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
@@ -38,7 +38,6 @@ class MainApp extends StatelessWidget {
         '/pagina2': (context) => const Pagina2(),
         '/all_movies_page': (context) => const AllMoviesPage(),
         '/movies_by_genre_page': (context) => const MoviesByGenrePage(),
-        '/favoritos': (context) => const FavoritosPage(),
       },
     );
   }
