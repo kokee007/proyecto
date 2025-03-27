@@ -27,8 +27,8 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // Autenticación primero:
+      debugShowCheckedModeBanner: false,//hoal
+      // Para que el usuario primero se autentique:
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
