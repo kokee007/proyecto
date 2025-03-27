@@ -93,7 +93,8 @@ class Draww extends StatelessWidget {
                   icon: Icons.favorite,
                   text: 'Favoritos',
                   onTap: () {
-                    // Configura la ruta para Favoritos según tu implementación
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/favoritos', arguments: username);
                   },
                 ),
                 _drawerItem(
