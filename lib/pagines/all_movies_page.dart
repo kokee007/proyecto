@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/components/barra.dart';
 import 'package:proyecto/components/draww.dart';
@@ -28,10 +30,28 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
   bool _isLoadingMore = false;
   String _searchQuery = "";
 
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _cargarPeliculasApi();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 100 &&
+        !_isLoadingMore &&
+        _searchQuery.isEmpty) {
+      _loadMoreMovies();
+    }
   }
 
   Future<void> _cargarPeliculasApi() async {
@@ -41,6 +61,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
+          "id": movie.id, // Se agrega el id
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -164,15 +185,35 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
     }
   }
 
-  void canviaCheckbox(bool? valor, int posLlista) {
-    setState(() {
-      final bool valorActual = db.pelicules[posLlista]["favorito"] ?? false;
-      db.pelicules[posLlista]["favorito"] = !valorActual;
-    });
-    db.actualitzarDades();
+  // Función para actualizar favoritos en Firebase.
+  Future<void> toggleFavoriteFirebase(Map<String, dynamic> movie, bool isFavorite) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final String docId = '${user.uid}_${movie["id"]}';
+    final CollectionReference favoritesCollection =
+    FirebaseFirestore.instance.collection("favoritos");
+    if (isFavorite) {
+      await favoritesCollection.doc(docId).set({
+        "userId": user.uid,
+        "movie": movie,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+    } else {
+      await favoritesCollection.doc(docId).delete();
+    }
   }
 
-  void esborraPeli(int posLlista) {
+  void canviaCheckbox(bool? valor, int posLlista) async {
+    final bool valorActual = db.pelicules[posLlista]["favorito"] ?? false;
+    final bool nuevoValor = !valorActual;
+    setState(() {
+      db.pelicules[posLlista]["favorito"] = nuevoValor;
+    });
+    await toggleFavoriteFirebase(db.pelicules[posLlista], nuevoValor);
+  }
+
+  // Renombramos la función para eliminar película a removePeli para evitar conflicto.
+  void removePeli(int posLlista) {
     setState(() {
       db.pelicules.removeAt(posLlista);
     });
@@ -245,17 +286,8 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
   @override
   Widget build(BuildContext context) {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
-    if (isLoading) {
-      return Scaffold(
-        appBar: Barra(username: username),
-        drawer: Draww(username: username),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final peliculasFiltradas = db.pelicules;
-
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: Barra(username: username),
       drawer: Draww(username: username),
       floatingActionButton: Column(
@@ -264,114 +296,136 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
           FloatingActionButton(
             heroTag: 'toggleEdit',
             mini: true,
+            backgroundColor: Colors.deepOrangeAccent,
             onPressed: () {
               setState(() {
                 editMode = !editMode;
               });
             },
-            child: Icon(editMode ? Icons.check : Icons.edit),
+            child: Icon(editMode ? Icons.check : Icons.edit, color: Colors.white),
           ),
           const SizedBox(height: 8),
           FloatingActionButton(
             heroTag: 'addMovie',
+            backgroundColor: Colors.deepOrangeAccent,
             onPressed: crearNovaPeli,
-            child: const Icon(Icons.add),
+            child: const Icon(Icons.add, color: Colors.white),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Campo de búsqueda
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  labelText: "Buscar película",
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = "";
-                      });
-                      _currentPage = 1;
-                      _cargarPeliculasApi();
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 100 &&
+              !_isLoadingMore &&
+              _searchQuery.isEmpty) {
+            _loadMoreMovies();
+          }
+          return false;
+        },
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            children: [
+              // Campo de búsqueda.
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepOrangeAccent.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    style: const TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: "Buscar película...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery = "";
+                          });
+                          _currentPage = 1;
+                          _cargarPeliculasApi();
+                        },
+                      ),
+                    ),
+                    onSubmitted: (query) {
+                      _searchMovies(query);
+                    },
+                    onChanged: (query) {
+                      if (query.isEmpty) {
+                        _currentPage = 1;
+                        _searchMovies("");
+                      }
                     },
                   ),
                 ),
-                onSubmitted: (query) {
-                  _searchMovies(query);
-                },
-                onChanged: (query) {
-                  if (query.isEmpty) {
-                    _currentPage = 1;
-                    _searchMovies("");
-                  }
-                },
               ),
-            ),
+            
             // Grid único que muestra todas las películas
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(8.0),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 0.7,
-                ),
-                itemCount: peliculasFiltradas.length,
-                itemBuilder: (context, index) {
-                  final movie = peliculasFiltradas[index];
-                  return Stack(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetallePelicula(movie: movie),
-                            ),
-                          );
-                        },
-                        child: ItemPelicula(
-                          textPeli: movie["titol"] ?? '',
-                          descripcio: movie["descripcio"] ?? '',
-                          imatge: movie["imatge"] ?? '',
-                          valorCheckBox: movie["favorito"] ?? false,
-                          canviaValorCheckbox: (valor) => canviaCheckbox(valor, index),
-                          esborraPeli: (context) => esborraPeli(index),
-                        ),
-                      ),
-                      if (editMode)
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.edit, size: 20, color: Colors.white),
-                            onPressed: () => _mostrarDialogoEdicionDB(index),
+              
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(8.0),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.65,
+                  ),
+                  itemCount: db.pelicules.length,
+                  itemBuilder: (context, index) {
+                    final movie = db.pelicules[index];
+                    return Stack(
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetallePelicula(movie: movie),
+                              ),
+                            );
+                          },
+                          child: ItemPelicula(
+                            textPeli: movie["titol"] ?? '',
+                            descripcio: movie["descripcio"] ?? '',
+                            imatge: movie["imatge"] ?? '',
+                            valorCheckBox: movie["favorito"] ?? false,
+                            canviaValorCheckbox: (valor) => canviaCheckbox(valor, index),
+                            // Llamamos a removePeli en vez de esborraPeli para evitar conflicto
+                            esborraPeli: (ctx) => removePeli(index),
                           ),
                         ),
-                    ],
-                  );
-                },
+                        if (editMode)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              icon: const Icon(Icons.edit, size: 20, color: Colors.white),
+                              onPressed: () => _mostrarDialogoEdicionDB(index),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-            // Botón para cargar más películas (paginación)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: _loadMoreMovies,
-                child: _isLoadingMore
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Cargar más películas"),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
