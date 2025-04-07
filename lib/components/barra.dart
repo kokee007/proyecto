@@ -1,59 +1,66 @@
 import 'package:flutter/material.dart';
 
 class Barra extends StatelessWidget implements PreferredSizeWidget {
-  final String? username; // Nombre del usuario, opcional
+  final String title;             // Título dinámico (p.ej. "Inicio", "Noticias", etc.)
+  final String? username;         // Nombre de usuario (opcional)
+  final VoidCallback? onSearchTap; // Acción al pulsar la lupa (opcional)
 
-  const Barra({super.key, this.username});
+  const Barra({
+    super.key,
+    required this.title,
+    this.username,
+    this.onSearchTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.grey[700],
-      title: Row(
+    return Container(
+      color: Colors.grey[700], 
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            "FILM REVIEWER",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          AppBar(
+            backgroundColor: Colors.grey[700],
+            elevation: 0,
+            title: Row(
+              children: [
+                // Título dinámico
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                // Ícono de búsqueda
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: onSearchTap,
+                ),
+                // Nombre de usuario (si existe)
+                if (username != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      username!,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(width: 30),
-          // Campo de búsqueda
-          const SizedBox(width: 10),
-          // Si ya hay un usuario logueado, se muestra su nombre
-          if (username != null)
-            Text(
-              username!,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            )
-          else ...[
-            // Si no hay usuario, se muestran los botones de Iniciar sesión y Registrarse
-            TextButton(
-              onPressed: () {
-                // Acción de iniciar sesión (por ejemplo, navegar a la pantalla de login)
-              },
-              child: const Text(
-                'Iniciar sesión',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 10),
-            TextButton(
-              onPressed: () {
-                // Acción de registrarse (por ejemplo, navegar a la pantalla de registro)
-              },
-              child: const Text(
-                'Registrarse',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+          // Línea divisoria roja debajo de la AppBar
+          Container(
+            height: 2,
+            color: Colors.red,
+          ),
         ],
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 2);
 }

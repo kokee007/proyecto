@@ -25,5 +25,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # No declaramos 'assets:' ni 'assets/images/'
-  # para que Flutter no busque ninguna imagen local.

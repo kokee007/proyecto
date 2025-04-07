@@ -306,14 +306,14 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
     if (isLoading) {
       return Scaffold(
-        appBar: Barra(username: username),
+        appBar: Barra(username: username, title: "Movies by Genre"),
         drawer: Draww(username: username),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     // Se muestran las películas agrupadas por género.
     return Scaffold(
-      appBar: Barra(username: username),
+      appBar: Barra(username: username, title: "Movies by Genre"),
       drawer: Draww(username: username),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,

@@ -290,7 +290,7 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: Barra(username: username),
+      appBar: Barra(username: username, title: "All Movies"),
       drawer: Draww(username: username),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
