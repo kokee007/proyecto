@@ -320,7 +320,7 @@ class _Pagina2State extends State<Pagina2> {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
     if (isLoading) {
       return Scaffold(
-        appBar: Barra(username: username),
+        appBar: Barra(username: username, title: "Películas"),
         drawer: Draww(username: username),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -331,7 +331,7 @@ class _Pagina2State extends State<Pagina2> {
     final peliculasFiltradas = db.pelicules;
 
     return Scaffold(
-      appBar: Barra(username: username),
+      appBar: Barra(username: username, title: "Películas"),
       drawer: Draww(username: username),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,

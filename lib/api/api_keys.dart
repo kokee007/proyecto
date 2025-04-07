@@ -1,8 +1,8 @@
 // lib/api_keys.dart
 class ApiKeys {
-  // Tu API key para TMDb (la que ya usas para películas)
+  // Si usas TMDb, actualiza esta key, sino déjala así
   static const String tmdbApiKey = "TU_TMDB_API_KEY";
-  
-  // Tu API key para la nueva API de noticias (NewsAPI)
-  static const String newsApiKey = "TU_NEWS_API_KEY";
+
+  // Tu key real para NewsAPI
+  static const String newsApiKey = "b77bb05073b84b429bc36a5c86b7f572";
 }
