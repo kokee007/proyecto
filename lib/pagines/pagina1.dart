@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -13,7 +14,19 @@ import 'package:proyecto/components/draww.dart';
 import 'package:proyecto/components/item_pelicula.dart';
 import 'package:proyecto/pagines/detalle_pelicula.dart';
 
-/// Fondo animado con gradiente
+/// Clase para representar una estrella en el fondo
+class Star {
+  final Offset position;
+  final double radius;
+  final double twinkleOffset;
+  Star({
+    required this.position,
+    required this.radius,
+    required this.twinkleOffset,
+  });
+}
+
+/// Fondo animado con gradiente, estrellas y efecto de ola profesional
 class AnimatedGradientBackground extends StatefulWidget {
   const AnimatedGradientBackground({Key? key}) : super(key: key);
 
@@ -22,65 +35,240 @@ class AnimatedGradientBackground extends StatefulWidget {
       _AnimatedGradientBackgroundState();
 }
 
-class _AnimatedGradientBackgroundState
-    extends State<AnimatedGradientBackground> {
+class _AnimatedGradientBackgroundState extends State<AnimatedGradientBackground>
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
-  late List<Gradient> gradients;
-  late Timer _timer;
+  late List<LinearGradient> gradients;
+  late Timer _gradientTimer;
+
+  // Control de la animación de las estrellas
+  late AnimationController _starController;
+  late Animation<double> _starAnimation;
+  final int numberOfStars = 100;
+  late List<Star> stars;
+  final Random random = Random();
+
+  // Controlador para el efecto de ola en la parte inferior (opcional)
+  late AnimationController _waveController;
+  late Animation<double> _waveAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Definición de gradientes con más tonos
     gradients = [
-      const LinearGradient(
-        colors: [Colors.red, Colors.black, Colors.grey, Colors.blue],
+      LinearGradient(
+        colors: [
+          Colors.black,
+          Colors.grey.shade900,
+          Colors.red.shade700,
+          Colors.deepOrange,
+          Colors.blue.shade800,
+          Colors.blue,
+        ],
+        stops: const [0.0, 0.2, 0.45, 0.6, 0.85, 1.0],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      const LinearGradient(
-        colors: [Colors.blue, Colors.grey, Colors.red, Colors.black],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      LinearGradient(
+        colors: [
+          Colors.blue.shade900,
+          Colors.indigo,
+          Colors.purple,
+          Colors.red.shade600,
+          Colors.black,
+          Colors.grey.shade800,
+        ],
+        stops: const [0.0, 0.15, 0.35, 0.55, 0.75, 1.0],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
       ),
-      const LinearGradient(
-        colors: [Colors.grey, Colors.blue, Colors.black, Colors.red],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      LinearGradient(
+        colors: [
+          Colors.grey.shade800,
+          Colors.blue.shade800,
+          Colors.blue,
+          Colors.teal,
+          Colors.green.shade800,
+          Colors.black,
+        ],
+        stops: const [0.0, 0.18, 0.4, 0.62, 0.8, 1.0],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
       ),
-      const LinearGradient(
-        colors: [Colors.black, Colors.red, Colors.blue, Colors.grey],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      LinearGradient(
+        colors: [
+          Colors.deepPurpleAccent,
+          Colors.pink.shade200,
+          Colors.red.shade300,
+          Colors.orange,
+          Colors.yellow.shade700,
+          Colors.black,
+        ],
+        stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
       ),
     ];
-    // Cambia gradiente cada 5 segundos
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+
+    // Cambia gradiente cada 4 segundos
+    _gradientTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       setState(() {
         _currentIndex = (_currentIndex + 1) % gradients.length;
       });
     });
+
+    // Generar estrellas con posiciones y parámetros aleatorios
+    stars = List.generate(numberOfStars, (_) {
+      return Star(
+        position: Offset(random.nextDouble(), random.nextDouble()),
+        radius: random.nextDouble() * 1.5 + 0.5,
+        twinkleOffset: random.nextDouble() * 2 * pi,
+      );
+    });
+
+    // Controlador para el efecto de titileo en las estrellas
+    _starController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    _starAnimation = Tween<double>(begin: 0.0, end: 2 * pi).animate(
+      CurvedAnimation(parent: _starController, curve: Curves.easeInOut),
+    );
+    _starController.repeat(reverse: true);
+
+    // Controlador para el efecto de ola
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    );
+    _waveAnimation = Tween<double>(begin: 0.0, end: 2 * pi).animate(
+      CurvedAnimation(parent: _waveController, curve: Curves.linear),
+    );
+    _waveController.repeat();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _gradientTimer.cancel();
+    _starController.dispose();
+    _waveController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(seconds: 2),
-      child: Container(
-        key: ValueKey<int>(_currentIndex),
-        decoration: BoxDecoration(
-          gradient: gradients[_currentIndex],
-        ),
-      ),
+    // Combina animaciones de gradiente, estrellas y ola
+    return AnimatedBuilder(
+      animation: Listenable.merge([_starAnimation, _waveAnimation]),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            // Fondo gradiente
+            AnimatedContainer(
+              duration: const Duration(seconds: 3),
+              decoration: BoxDecoration(
+                gradient: gradients[_currentIndex],
+              ),
+            ),
+            // Estrellas
+            CustomPaint(
+              size: MediaQuery.of(context).size,
+              painter: StarFieldPainter(
+                stars: stars,
+                animationValue: _starAnimation.value,
+              ),
+            ),
+            // Ola inferior
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: CustomPaint(
+                size: const Size(double.infinity, 50),
+                painter: WavePainter(_waveAnimation.value),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
+/// CustomPainter para el cielo estrellado
+class StarFieldPainter extends CustomPainter {
+  final List<Star> stars;
+  final double animationValue;
+  StarFieldPainter({
+    required this.stars,
+    required this.animationValue,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()..style = PaintingStyle.fill;
+    for (final star in stars) {
+      double opacity = 0.5 + 0.5 * sin(animationValue + star.twinkleOffset);
+      paint.color = Colors.white.withOpacity(opacity);
+      final Offset position = Offset(
+        star.position.dx * size.width,
+        star.position.dy * size.height,
+      );
+      canvas.drawCircle(position, star.radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(StarFieldPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue;
+  }
+}
+
+/// CustomPainter para la ola inferior
+class WavePainter extends CustomPainter {
+  final double wavePhase;
+  WavePainter(this.wavePhase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.15)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    const double waveHeight = 30.0;
+    final double waveLength = size.width;
+
+    path.moveTo(0, size.height);
+    for (double x = 0; x <= waveLength; x++) {
+      final double y =
+          size.height - waveHeight * sin((2 * pi / waveLength) * x + wavePhase);
+      path.lineTo(x, y);
+    }
+    path.lineTo(waveLength, size.height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(WavePainter oldDelegate) =>
+      oldDelegate.wavePhase != wavePhase;
+}
+
+/// Lista con 6+ GIFs cinematográficos (¡añade o cambia los que quieras!)
+final List<String> topSectionGifs = [
+  // Ejemplo de GIFs variados relacionados con cine/animación
+  "https://media.giphy.com/media/10LKovKon8DENq/giphy.gif",
+  "https://media.giphy.com/media/l0HlAqW2h9YnkR8yY/giphy.gif",
+  "https://media.giphy.com/media/26BRzozg4TCBXv6QU/giphy.gif",
+  "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif",
+  "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+  "https://media.giphy.com/media/UoeaPqYrimha6rdTFV/giphy.gif",
+  "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+];
+
+/// Pagina1: selecciona un GIF aleatorio cada vez que entras
 class Pagina1 extends StatefulWidget {
   const Pagina1({super.key});
 
@@ -89,7 +277,8 @@ class Pagina1 extends StatefulWidget {
 }
 
 class _Pagina1State extends State<Pagina1> {
-  bool isLoading = true;
+  bool isLoading = true; // Indica si las pelis se están cargando
+  bool isNewsLoading = true; // Indica si las noticias se están cargando
 
   // Listas de películas
   List<Map<String, dynamic>> featuredMovies = [];
@@ -97,21 +286,28 @@ class _Pagina1State extends State<Pagina1> {
   List<Map<String, dynamic>> topRatedMovies = [];
   List<Map<String, dynamic>> trendingMovies = [];
 
-  // Noticias de cine
-  bool isNewsLoading = true;
+  // Lista de noticias
   List<dynamic> cineNews = [];
+
+  // Para el NewsAPI
   final String newsApiKey = ApiKeys.newsApiKey;
   final String newsEndpoint =
       "https://newsapi.org/v2/everything?q=cine%20OR%20pel%C3%ADcula%20OR%20%22festival%20de%20cine%22&language=es&sortBy=publishedAt";
 
+  // Variable para almacenar el GIF seleccionado al azar
+  late String selectedGif;
+  final Random random = Random();
+
   @override
   void initState() {
     super.initState();
+    // Selecciona un GIF al azar cada vez que se reconstruya la pagina
+    selectedGif = topSectionGifs[random.nextInt(topSectionGifs.length)];
     _loadAllApiData();
     _fetchNoticiasCine();
   }
 
-  // ================== CARGA DE PELÍCULAS ==================
+  // Carga de películas
   Future<void> _loadAllApiData() async {
     setState(() => isLoading = true);
     try {
@@ -124,10 +320,10 @@ class _Pagina1State extends State<Pagina1> {
       upcomingMovies = _mapMovies(rawUpcoming);
       trendingMovies = _mapMovies(rawTrending);
 
-      // Ordenamos featuredMovies por voto para topRated
+      // Ordenamos para topRated según el voto
       topRatedMovies = List.from(featuredMovies)
-        ..sort((a, b) =>
-            (b["vote_average"] as double).compareTo(a["vote_average"] as double));
+        ..sort((a, b) => (b["vote_average"] as double)
+            .compareTo(a["vote_average"] as double));
 
       setState(() => isLoading = false);
     } catch (e) {
@@ -152,7 +348,7 @@ class _Pagina1State extends State<Pagina1> {
     }).toList();
   }
 
-  // ================== CARGA DE NOTICIAS (NewsAPI) ==================
+  // Carga de noticias
   Future<void> _fetchNoticiasCine() async {
     setState(() => isNewsLoading = true);
     try {
@@ -183,17 +379,31 @@ class _Pagina1State extends State<Pagina1> {
     }
   }
 
-  // ============ ZONA SUPERIOR: Imagen animada (GIF) + texto "INICIO" ============
+  // =================== TOP SECTION (GIF + "INICIO") ===================
   Widget _buildTopSection() {
     return SizedBox(
       height: 220,
       child: Stack(
         children: [
-          // Imagen animada sobre cine (GIF)
+          // Se muestra el GIF aleatorio seleccionado
+          
           Image.network(
-            "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+            selectedGif,
             fit: BoxFit.cover,
             width: double.infinity,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  strokeCap: StrokeCap.round,
+                  color: Colors.redAccent,
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          (loadingProgress.expectedTotalBytes ?? 1)
+                      : null,
+                ),
+              );
+            },
             errorBuilder: (context, error, stackTrace) {
               return Container(
                 color: Colors.grey,
@@ -205,15 +415,21 @@ class _Pagina1State extends State<Pagina1> {
               );
             },
           ),
-          // Texto "INICIO"
+          // Texto superpuesto "INICIO"
           const Positioned(
             left: 16,
             top: 16,
             child: Text(
               "INICIO",
               style: TextStyle(
+                shadows: [
+                  Shadow(
+                    color: Colors.yellowAccent,
+                    blurRadius: 4,
+                  ),
+                ],
                 color: Colors.redAccent,
-                fontSize: 32,
+                fontSize: 42,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -223,7 +439,7 @@ class _Pagina1State extends State<Pagina1> {
     );
   }
 
-  // ============ Divider rojo debajo de la imagen ============
+  // =================== DIVIDER ROJO ===================
   Widget _buildRedDivider() {
     return Container(
       height: 3,
@@ -231,8 +447,9 @@ class _Pagina1State extends State<Pagina1> {
     );
   }
 
-  // ============ Sección de películas (usa ItemPelicula sin corazón) ============
-  Widget _buildMovieSection(String sectionTitle, List<Map<String, dynamic>> movies) {
+  // =================== SECCIONES DE PELÍCULAS ===================
+  Widget _buildMovieSection(
+      String sectionTitle, List<Map<String, dynamic>> movies) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,7 +457,11 @@ class _Pagina1State extends State<Pagina1> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             sectionTitle,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
         SizedBox(
@@ -254,7 +475,9 @@ class _Pagina1State extends State<Pagina1> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => DetallePelicula(movie: movie)),
+                    MaterialPageRoute(
+                      builder: (context) => DetallePelicula(movie: movie),
+                    ),
                   );
                 },
                 child: SizedBox(
@@ -278,14 +501,15 @@ class _Pagina1State extends State<Pagina1> {
     return _buildMovieSection(title, movies);
   }
 
-  // ============ Secciones de noticias (slider + lista) ============
+  // =================== SECCIONES DE NOTICIAS ===================
   Widget _buildNewsSlider() {
     if (isNewsLoading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (cineNews.isEmpty) {
       return const Center(
-        child: Text("No hay noticias recientes de cine", style: TextStyle(color: Colors.white70)),
+        child: Text("No hay noticias recientes de cine",
+            style: TextStyle(color: Colors.white70)),
       );
     }
     return Column(
@@ -295,7 +519,11 @@ class _Pagina1State extends State<Pagina1> {
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             "Noticias Destacadas",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
         SizedBox(
@@ -338,13 +566,17 @@ class _Pagina1State extends State<Pagina1> {
                                 errorBuilder: (ctx, error, stack) => Container(
                                   color: Colors.grey,
                                   alignment: Alignment.center,
-                                  child: const Text("Img no disp.", style: TextStyle(color: Colors.white)),
+                                  child: const Text(
+                                    "Img no disp.",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               )
                             : Container(
                                 color: Colors.grey,
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.image, color: Colors.white),
+                                child: const Icon(Icons.image,
+                                    color: Colors.white),
                               ),
                       ),
                       Container(
@@ -369,7 +601,10 @@ class _Pagina1State extends State<Pagina1> {
                               description,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
                             ),
                             const Spacer(),
                             Align(
@@ -378,7 +613,10 @@ class _Pagina1State extends State<Pagina1> {
                                 onTap: () => _launchUrl(url),
                                 child: const Text(
                                   "Leer más",
-                                  style: TextStyle(color: Colors.blueAccent, fontSize: 12),
+                                  style: TextStyle(
+                                    color: Colors.blueAccent,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ),
@@ -410,7 +648,8 @@ class _Pagina1State extends State<Pagina1> {
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             "Noticias Recientes",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+                fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
         ListView.builder(
@@ -442,7 +681,6 @@ class _Pagina1State extends State<Pagina1> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Imagen con errorBuilder
                     AspectRatio(
                       aspectRatio: 16 / 9,
                       child: imageUrl != null && imageUrl.isNotEmpty
@@ -452,13 +690,17 @@ class _Pagina1State extends State<Pagina1> {
                               errorBuilder: (ctx, error, stack) => Container(
                                 color: Colors.grey,
                                 alignment: Alignment.center,
-                                child: const Text("Img no disp.", style: TextStyle(color: Colors.white)),
+                                child: const Text(
+                                  "Img no disp.",
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
                             )
                           : Container(
                               color: Colors.grey,
                               alignment: Alignment.center,
-                              child: const Icon(Icons.image, color: Colors.white),
+                              child:
+                                  const Icon(Icons.image, color: Colors.white),
                             ),
                     ),
                     Container(
@@ -489,7 +731,8 @@ class _Pagina1State extends State<Pagina1> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () => _launchUrl(url),
-                              child: const Text("Leer más", style: TextStyle(color: Colors.blueAccent)),
+                              child: const Text("Leer más",
+                                  style: TextStyle(color: Colors.blueAccent)),
                             ),
                           ),
                         ],
@@ -505,15 +748,16 @@ class _Pagina1State extends State<Pagina1> {
     );
   }
 
-  // ============ CONTENIDO COMPLETO ============
+  // =================== CONTENIDO COMPLETO ===================
   Widget _buildContent() {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Zona superior con imagen animada
+        // Zona superior con un GIF aleatorio y texto "INICIO"
         _buildTopSection(),
         // Divider rojo
         _buildRedDivider(),
@@ -535,28 +779,25 @@ class _Pagina1State extends State<Pagina1> {
     );
   }
 
-  // ============ BUILD PRINCIPAL ============
   @override
   Widget build(BuildContext context) {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       drawer: Draww(username: username),
-      // AppBar gris con línea roja (Barra)
       appBar: Barra(
         title: "Inicio",
         username: username,
         onSearchTap: () {
-          // Al pulsar la lupa, abrimos un SearchDelegate
           showSearch(
             context: context,
             delegate: MovieSearchDelegate(),
           );
         },
       ),
-      // Fondo animado + contenido
+      // Se utiliza el fondo animado con gradiente, estrellas y ola
       body: Stack(
         children: [
-          const AnimatedGradientBackground(),
+          const Positioned.fill(child: AnimatedGradientBackground()),
           SingleChildScrollView(
             child: _buildContent(),
           ),
@@ -566,7 +807,7 @@ class _Pagina1State extends State<Pagina1> {
   }
 }
 
-// ============= SEARCH DELEGATE PARA LA LUPA ==================
+/// SEARCH DELEGATE PARA LA LUPA
 class MovieSearchDelegate extends SearchDelegate {
   final TmdbApi tmdbApi = TmdbApi();
 
@@ -575,31 +816,26 @@ class MovieSearchDelegate extends SearchDelegate {
 
   @override
   List<Widget> buildActions(BuildContext context) {
-    // Botón para limpiar el texto si no está vacío
-    if (query.isEmpty) {
-      return [];
-    } else {
-      return [
-        IconButton(
-          icon: const Icon(Icons.clear),
-          onPressed: () {
-            query = '';
-          },
-        )
-      ];
-    }
+    return query.isEmpty
+        ? []
+        : [
+            IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                query = '';
+              },
+            ),
+          ];
   }
 
   @override
   Widget buildLeading(BuildContext context) {
-    // Flecha para cerrar el SearchDelegate
     return IconButton(
       icon: const Icon(Icons.arrow_back),
       onPressed: () => close(context, null),
     );
   }
 
-  // Mostramos resultados de búsqueda
   @override
   Widget buildResults(BuildContext context) {
     if (query.isEmpty) {
@@ -625,10 +861,9 @@ class MovieSearchDelegate extends SearchDelegate {
             final title = item["title"] ?? "Sin título";
             final overview = item["overview"] ?? "";
             final posterPath = item["poster_path"];
-            final poster = posterPath != null && posterPath.isNotEmpty
+            final poster = (posterPath != null && posterPath.isNotEmpty)
                 ? "https://image.tmdb.org/t/p/w200$posterPath"
                 : "";
-
             return ListTile(
               leading: poster.isNotEmpty
                   ? Image.network(
@@ -646,7 +881,6 @@ class MovieSearchDelegate extends SearchDelegate {
                 overflow: TextOverflow.ellipsis,
               ),
               onTap: () {
-                // Cierra el search y navega a DetallePelicula
                 final movie = {
                   "id": item["id"],
                   "titol": title,
@@ -670,13 +904,11 @@ class MovieSearchDelegate extends SearchDelegate {
     );
   }
 
-  // buildSuggestions: sugerencias rápidas mientras se escribe
   @override
   Widget buildSuggestions(BuildContext context) {
     if (query.isEmpty) {
       return const Center(child: Text("Escribe algo para buscar..."));
     }
-    // Podemos mostrar los mismos resultados que en buildResults
     return buildResults(context);
   }
 }
