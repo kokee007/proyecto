@@ -2,14 +2,17 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/firebase_options.dart';
 import 'package:proyecto/pagines/favoritos.dart';
-import 'package:proyecto/pagines/noticias.dart'; 
+import 'package:proyecto/pagines/noticias.dart';
 import 'package:proyecto/pagines/pagina1.dart';
-import 'package:proyecto/pagines/pagina2.dart';
 import 'package:proyecto/pagines/login.dart';
 import 'package:proyecto/pagines/registro.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:proyecto/pagines/all_movies_page.dart';
 import 'package:proyecto/pagines/movies_by_genre_page.dart';
+import 'package:proyecto/pagines/configuracion.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+// 1️⃣ Global theme notifier, defaulting to dark:
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,20 +30,43 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,//hoal
-      // Para que el usuario primero se autentique:
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginPage(),
-        '/registro': (context) => const RegistroPage(),
-        '/': (context) => const Pagina1(),
-        '/pagina1': (context) => const Pagina1(),
-        '/pagina2': (context) => const Pagina2(),
-        '/all_movies_page': (context) => const AllMoviesPage(),
-        '/movies_by_genre_page': (context) => const MoviesByGenrePage(),
-        '/noticias': (context) => const Noticias(), // Nueva ruta para la página de noticias
-        '/favoritos': (context) => const FavoritosPage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          themeMode: themeMode,
+          theme: ThemeData.light().copyWith(
+            primaryColor: Colors.redAccent,
+            scaffoldBackgroundColor: Colors.white,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              iconTheme: IconThemeData(color: Colors.black),
+              titleTextStyle: TextStyle(color: Colors.black, fontSize: 20),
+            ),
+          ),
+          darkTheme: ThemeData.dark().copyWith(
+            primaryColor: Colors.redAccent,
+            scaffoldBackgroundColor: Colors.grey.shade900,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.black87,
+              iconTheme: IconThemeData(color: Colors.white),
+              titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ),
+          initialRoute: '/login',
+          routes: {
+            '/login': (context) => const LoginPage(),
+            '/registro': (context) => const RegistroPage(),
+            '/': (context)     => const Pagina1(),
+            '/pagina1': (ctx) => const Pagina1(),
+            '/all_movies_page':    (ctx) => const AllMoviesPage(),
+            '/movies_by_genre_page': (ctx) => const MoviesByGenrePage(),
+            '/noticias':      (ctx) => const Noticias(),
+            '/favoritos':     (ctx) => const FavoritosPage(),
+            '/configuracion': (ctx) => const ConfiguracionPage(),
+          },
+        );
       },
     );
   }

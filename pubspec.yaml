@@ -7,21 +7,30 @@ environment:
   sdk: ^3.5.4
 
 dependencies:
-  cloud_firestore: ^5.6.5
-  firebase_auth: ^5.5.1
-  firebase_core: ^3.12.1
   flutter:
     sdk: flutter
+
+  # Firebase Core & Auth & Firestore
+  firebase_core:   ^3.12.1
+  firebase_auth:   ^5.5.1
+  cloud_firestore: ^5.6.5
+
+  # Imagenes desde galería
+  image_picker:    ^0.8.7+4
+
+  # Estado local con Hive
+  hive:            ^2.2.3
+  hive_flutter:    ^1.1.0
+
+  # UI y utilidades
   flutter_slidable: ^3.1.2
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  http: ^0.13.6
-  url_launcher: ^6.3.1
+  http:             ^0.13.6
+  url_launcher:     ^6.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints:    ^5.0.0
 
 flutter:
   uses-material-design: true

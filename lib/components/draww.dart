@@ -105,6 +105,7 @@ class Draww extends StatelessWidget {
                     Navigator.pushNamed(context, '/noticias');
                   },
                 ),
+                // Aquí se invoca la nueva página de configuración
                 _drawerItem(
                   icon: Icons.settings,
                   text: 'Configuración',
@@ -138,7 +139,7 @@ class Draww extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/login',
-                      (Route<dynamic> route) => false,
+                  (Route<dynamic> route) => false,
                 );
               },
               icon: const Icon(Icons.logout, color: Colors.white),
