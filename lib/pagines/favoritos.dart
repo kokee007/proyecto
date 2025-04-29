@@ -7,18 +7,13 @@ import 'package:proyecto/components/barra.dart';
 import 'package:proyecto/components/draww.dart';
 import 'package:proyecto/pagines/detalle_pelicula.dart';
 
-// ------------------------------
-// Clases para el fondo con corazones
-// ------------------------------
-
-/// Modelo para un corazón
-class Heart {
-  final Offset position; // Posición como valor relativo (0..1)
+/// Modelo interno para un corazón animado.
+class _Heart {
+  final Offset position;
   final double size;
   final double rotation;
-  final double twinkleOffset; // Para oscilar la opacidad
-
-  Heart({
+  final double twinkleOffset;
+  _Heart({
     required this.position,
     required this.size,
     required this.rotation,
@@ -26,192 +21,108 @@ class Heart {
   });
 }
 
-/// CustomPainter para pintar corazones titilantes
-class HeartFieldPainter extends CustomPainter {
-  final List<Heart> hearts;
+/// CustomPainter para dibujar corazones titilantes.
+class _HeartFieldPainter extends CustomPainter {
+  final List<_Heart> hearts;
   final double animationValue;
-
-  HeartFieldPainter({required this.hearts, required this.animationValue});
+  _HeartFieldPainter({required this.hearts, required this.animationValue});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final painter = TextPainter(textDirection: TextDirection.ltr);
     for (final heart in hearts) {
-      // Calcula la opacidad en función del ciclo (titileo)
-      final double opacity = 0.5 + 0.5 * sin(animationValue + heart.twinkleOffset);
-      // Define el estilo del corazón (se usa emoji ♥)
-      final textSpan = TextSpan(
-        text: '❤️',  // Puedes cambiar el emoji o incluso usar un Icon si prefieres
-        style: TextStyle(
-          fontSize: heart.size,
-          color: Colors.redAccent.withOpacity(opacity),
-        ),
+      final opacity = 0.5 + 0.5 * sin(animationValue + heart.twinkleOffset);
+      painter.text = TextSpan(
+        text: '❤️',
+        style: TextStyle(fontSize: heart.size, color: Colors.redAccent.withOpacity(opacity)),
       );
-      final textPainter = TextPainter(
-        text: textSpan,
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      // Calcula la posición absoluta de la imagen
-      final Offset pos = Offset(
-        heart.position.dx * size.width - textPainter.width / 2,
-        heart.position.dy * size.height - textPainter.height / 2,
-      );
-      // Guarda el estado del canvas y aplica la rotación alrededor del centro del corazón
+      painter.layout();
+
+      final dx = heart.position.dx * size.width;
+      final dy = heart.position.dy * size.height;
       canvas.save();
-      canvas.translate(pos.dx + textPainter.width / 2, pos.dy + textPainter.height / 2);
-      canvas.rotate(heart.rotation);
-      canvas.translate(-textPainter.width / 2, -textPainter.height / 2);
-      textPainter.paint(canvas, Offset.zero);
+      canvas.translate(dx, dy);
+      canvas.rotate(animationValue + heart.rotation);
+      painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
       canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(covariant HeartFieldPainter oldDelegate) =>
-      oldDelegate.animationValue != animationValue;
+  bool shouldRepaint(covariant _HeartFieldPainter old) =>
+      old.animationValue != animationValue;
 }
 
-/// Fondo animado que combina gradientes y el campo de corazones titilantes
-class AnimatedGradientBackground extends StatefulWidget {
-  const AnimatedGradientBackground({Key? key}) : super(key: key);
-
+/// Widget que muestra el fondo animado de corazones.
+class AnimatedHeartBackground extends StatefulWidget {
+  const AnimatedHeartBackground({Key? key}) : super(key: key);
   @override
-  _AnimatedGradientBackgroundState createState() =>
-      _AnimatedGradientBackgroundState();
+  _AnimatedHeartBackgroundState createState() => _AnimatedHeartBackgroundState();
 }
 
-class _AnimatedGradientBackgroundState
-    extends State<AnimatedGradientBackground> with TickerProviderStateMixin {
-  int _currentIndex = 0;
-  late List<LinearGradient> gradients;
-  late Timer _gradientTimer;
-
-  // Controlador para la animación de los corazones
-  late AnimationController _heartController;
-  late Animation<double> _heartAnimation;
-  final int numberOfHearts = 80;
-  late List<Heart> hearts;
-  final Random random = Random();
+class _AnimatedHeartBackgroundState extends State<AnimatedHeartBackground>
+    with TickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+  late final List<_Heart> _hearts;
 
   @override
   void initState() {
     super.initState();
-    // Gradientes en tonos rojos, rosados y similares
-    gradients = [
-      LinearGradient(
-        colors: [Colors.red, Colors.pink, Colors.redAccent, Colors.pinkAccent],
-        stops: const [0.0, 0.33, 0.66, 1.0],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      LinearGradient(
-        colors: [Colors.pinkAccent, Colors.redAccent, Colors.red, Colors.pink],
-        stops: const [0.0, 0.33, 0.66, 1.0],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-      ),
-      LinearGradient(
-        colors: [Colors.red.shade900, Colors.red, Colors.pink.shade200, Colors.red.shade400],
-        stops: const [0.0, 0.5, 0.75, 1.0],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ),
-      LinearGradient(
-        colors: [Colors.pink, Colors.redAccent, Colors.red.shade300, Colors.pinkAccent],
-        stops: const [0.0, 0.3, 0.6, 1.0],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ),
-    ];
-
-    // Cambia gradiente cada 5 segundos
-    _gradientTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      setState(() {
-        _currentIndex = (_currentIndex + 1) % gradients.length;
-      });
-    });
-
-    // Genera los corazones en posiciones aleatorias (usamos coordenadas relativas 0..1)
-    hearts = List.generate(numberOfHearts, (_) {
-      return Heart(
-        position: Offset(random.nextDouble(), random.nextDouble()),
-        size: random.nextDouble() * 20 + 15, // Tamaño entre 15 y 35
-        rotation: random.nextDouble() * 2 * pi,
-        twinkleOffset: random.nextDouble() * 2 * pi,
-      );
-    });
-
-    // Controlador para la animación de los corazones (ciclo de 3 segundos)
-    _heartController = AnimationController(vsync: this, duration: const Duration(seconds: 3));
-    _heartAnimation = Tween<double>(begin: 0.0, end: 2 * pi).animate(
-      CurvedAnimation(parent: _heartController, curve: Curves.easeInOut),
-    );
-    _heartController.repeat(reverse: true);
+    final rnd = Random();
+    _hearts = List.generate(80, (_) => _Heart(
+          position: Offset(rnd.nextDouble(), rnd.nextDouble()),
+          size: rnd.nextDouble() * 20 + 15,
+          rotation: rnd.nextDouble() * 2 * pi,
+          twinkleOffset: rnd.nextDouble() * 2 * pi,
+        ));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
   }
 
   @override
   void dispose() {
-    _gradientTimer.cancel();
-    _heartController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _heartAnimation,
-      builder: (context, child) {
-        return Stack(
-          children: [
-            // Fondo de gradiente animado
-            AnimatedContainer(
-              duration: const Duration(seconds: 3),
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                gradient: gradients[_currentIndex],
-              ),
-            ),
-            // Campo de corazones titilantes
-            CustomPaint(
-              size: MediaQuery.of(context).size,
-              painter: HeartFieldPainter(
-                hearts: hearts,
-                animationValue: _heartAnimation.value,
-              ),
-            ),
-          ],
+      animation: _animation,
+      builder: (_, __) {
+        return CustomPaint(
+          size: Size.infinite,
+          painter: _HeartFieldPainter(
+            hearts: _hearts,
+            animationValue: _animation.value,
+          ),
         );
       },
     );
   }
 }
 
-// ------------------------------------------
-// Resto de la página de Favoritos (sin cambios en la funcionalidad)
-// ------------------------------------------
+/// Pantalla de favoritos con fondo animado y listado de películas.
 class FavoritosPage extends StatelessWidget {
   const FavoritosPage({Key? key}) : super(key: key);
 
-  /// Obtiene el UID del usuario actual.
-  Future<String?> getUserUid() async {
-    return FirebaseAuth.instance.currentUser?.uid;
-  }
+  Future<String?> _getUserUid() async => FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
-      // No se define backgroundColor para permitir ver el fondo animado.
-      appBar: Barra(username: username, title: "Favoritos"),
+      appBar: Barra(title: 'Favoritos', username: username),
       drawer: Draww(username: username),
       body: Stack(
         children: [
-          // Fondo animado con gradiente y corazones (ocupando toda la pantalla)
-          const Positioned.fill(child: AnimatedGradientBackground()),
-          // Contenido de favoritos por encima del fondo
+          const Positioned.fill(child: AnimatedHeartBackground()),
           FutureBuilder<String?>(
-            future: getUserUid(),
+            future: _getUserUid(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -219,41 +130,31 @@ class FavoritosPage extends StatelessWidget {
               final uid = snapshot.data;
               if (uid == null) {
                 return const Center(
-                  child: Text(
-                    "No se encontró usuario",
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
+                  child: Text('No se encontró usuario', style: TextStyle(color: Colors.white)),
                 );
               }
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection("favoritos")
-                    .where("userId", isEqualTo: uid)
-                    .orderBy("timestamp", descending: true)
+                    .collection('favoritos')
+                    .where('userId', isEqualTo: uid)
+                    .orderBy('timestamp', descending: true)
                     .snapshots(),
                 builder: (context, favSnapshot) {
                   if (favSnapshot.hasError) {
                     return Center(
-                      child: Text("Error: ${favSnapshot.error}",
-                          style: const TextStyle(color: Colors.white)),
+                      child: Text('Error: \${favSnapshot.error}', style: const TextStyle(color: Colors.white)),
                     );
                   }
-                  if (favSnapshot.connectionState == ConnectionState.waiting) {
+                  if (!favSnapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final docs = favSnapshot.data?.docs ?? [];
+                  final docs = favSnapshot.data!.docs;
                   if (docs.isEmpty) {
                     return const Center(
-                      child: Text(
-                        "No tienes favoritos",
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
+                      child: Text('No tienes favoritos', style: TextStyle(color: Colors.white)),
                     );
                   }
-                  // Cada documento contiene el campo "movie"
-                  final favorites =
-                      docs.map((doc) => doc["movie"] as Map<String, dynamic>).toList();
-
+                  final favorites = docs.map((d) => d['movie'] as Map<String, dynamic>).toList();
                   return GridView.builder(
                     padding: const EdgeInsets.all(8.0),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -263,55 +164,40 @@ class FavoritosPage extends StatelessWidget {
                       childAspectRatio: 0.7,
                     ),
                     itemCount: favorites.length,
-                    itemBuilder: (context, index) {
-                      final movie = favorites[index];
+                    itemBuilder: (context, i) {
+                      final m = favorites[i];
                       return InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetallePelicula(movie: movie),
-                            ),
-                          );
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => DetallePelicula(movie: m)),
+                        ),
                         child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 6,
                           clipBehavior: Clip.antiAlias,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Expanded(
-                                child: movie["imatge"].toString().isNotEmpty
+                                child: m['imatge']?.toString().isNotEmpty == true
                                     ? Image.network(
-                                        movie["imatge"],
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Container(
-                                              color: Colors.grey[800],
-                                              child: const Icon(Icons.broken_image,
-                                                  size: 40,
-                                                  color: Colors.grey),
-                                            ),
+                                        m['imatge'], fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          color: Colors.grey[800],
+                                          child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                        ),
                                       )
                                     : Container(
                                         color: Colors.grey[800],
-                                        child: const Icon(Icons.movie,
-                                            size: 40, color: Colors.grey),
+                                        child: const Icon(Icons.movie, color: Colors.grey, size: 40),
                                       ),
                               ),
                               Container(
                                 color: Colors.black87,
-                                padding: const EdgeInsets.all(8.0),
+                                padding: const EdgeInsets.all(8),
                                 child: Text(
-                                  movie["titol"] ?? "Sin título",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                                  m['titol'] ?? 'Sin título',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
