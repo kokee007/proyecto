@@ -80,7 +80,7 @@ class DetallePelicula extends StatelessWidget {
     }
   }
 
-  // Diálogo para agregar comentario (se obtiene el nombre del usuario actual).
+  // Función para mostrar el diálogo de agregar comentario.
   void _showAddCommentDialog(BuildContext context, int movieId) {
     final TextEditingController _commentController = TextEditingController();
     double rating = 5.0;
@@ -169,10 +169,70 @@ class DetallePelicula extends StatelessWidget {
       "timestamp": FieldValue.serverTimestamp(),
     });
 
+    // Aquí se guarda o actualiza la película en la colección "peliculas" si fuera necesario.
     await firestore
         .collection("peliculas")
         .doc(movieId.toString())
         .set(movie.cast<String, dynamic>());
+  }
+
+  // Función para mostrar el diálogo que permite agregar la película a una lista.
+  Future<void> _showAddToListDialog(BuildContext context, Map movie) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Obtener las listas del usuario.
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection("listas")
+        .where("userId", isEqualTo: user.uid)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No tienes listas. Crea una lista primero.")));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Agregar a lista"),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: snapshot.docs.length,
+              itemBuilder: (context, index) {
+                final doc = snapshot.docs[index];
+                final listName = doc["listName"] ?? "Sin nombre";
+                return ListTile(
+                  title: Text(listName),
+                  onTap: () async {
+                    // Actualizar la lista agregando la película al array "movies".
+                    await FirebaseFirestore.instance
+                        .collection("listas")
+                        .doc(doc.id)
+                        .update({
+                      "movies": FieldValue.arrayUnion([movie])
+                    });
+                    Navigator.pop(context); // Cierra el diálogo de selección.
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Película agregada a la lista $listName")));
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            )
+          ],
+        );
+      },
+    );
   }
 
   // Construye la lista de comentarios.
@@ -359,6 +419,18 @@ class DetallePelicula extends StatelessWidget {
                             style: TextStyle(color: Colors.white70));
                       }
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  // Nuevo botón para agregar la película a una lista.
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepOrangeAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                    onPressed: () => _showAddToListDialog(context, movie),
+                    icon: const Icon(Icons.playlist_add, color: Colors.white),
+                    label: const Text("Agregar a lista", style: TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(

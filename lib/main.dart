@@ -2,7 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/firebase_options.dart';
 import 'package:proyecto/pagines/favoritos.dart';
-import 'package:proyecto/pagines/noticias.dart';
+import 'package:proyecto/pagines/llistes.dart';
+import 'package:proyecto/pagines/noticias.dart'; // Importa la página de noticias
 import 'package:proyecto/pagines/pagina1.dart';
 import 'package:proyecto/pagines/login.dart';
 import 'package:proyecto/pagines/registro.dart';
@@ -67,6 +68,7 @@ class MainApp extends StatelessWidget {
             '/configuracion': (ctx) => const ConfiguracionPage(),
           },
         );
+        '/llistes': (context) => const Llistes(),
       },
     );
   }

@@ -112,6 +112,14 @@ class FavoritosPage extends StatelessWidget {
 
   Future<String?> _getUserUid() async => FirebaseAuth.instance.currentUser?.uid;
 
+  /// Elimina la película de favoritos para el usuario actual.
+  Future<void> removeFavorite(Map<String, dynamic> movie) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final String docId = '${user.uid}_${movie["id"]}';
+    await FirebaseFirestore.instance.collection("favoritos").doc(docId).delete();
+  }
+
   @override
   Widget build(BuildContext context) {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
@@ -133,71 +141,73 @@ class FavoritosPage extends StatelessWidget {
                   child: Text('No se encontró usuario', style: TextStyle(color: Colors.white)),
                 );
               }
-              return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('favoritos')
-                    .where('userId', isEqualTo: uid)
-                    .orderBy('timestamp', descending: true)
-                    .snapshots(),
-                builder: (context, favSnapshot) {
-                  if (favSnapshot.hasError) {
-                    return Center(
-                      child: Text('Error: \${favSnapshot.error}', style: const TextStyle(color: Colors.white)),
-                    );
-                  }
-                  if (!favSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final docs = favSnapshot.data!.docs;
-                  if (docs.isEmpty) {
-                    return const Center(
-                      child: Text('No tienes favoritos', style: TextStyle(color: Colors.white)),
-                    );
-                  }
-                  final favorites = docs.map((d) => d['movie'] as Map<String, dynamic>).toList();
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(8.0),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 0.7,
-                    ),
-                    itemCount: favorites.length,
-                    itemBuilder: (context, i) {
-                      final m = favorites[i];
-                      return InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => DetallePelicula(movie: m)),
-                        ),
+              // Cada documento contiene el campo "movie" con la información de la película.
+              final favorites = docs.map((doc) => doc["movie"] as Map<String, dynamic>).toList();
+
+              return GridView.builder(
+                padding: const EdgeInsets.all(8.0),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.7,
+                ),
+                itemCount: favorites.length,
+                itemBuilder: (context, index) {
+                  final movie = favorites[index];
+                  return Stack(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetallePelicula(movie: movie),
+                            ),
+                          );
+                        },
                         child: Card(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           elevation: 6,
                           clipBehavior: Clip.antiAlias,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Expanded(
-                                child: m['imatge']?.toString().isNotEmpty == true
+                                child: movie["imatge"].toString().isNotEmpty
                                     ? Image.network(
-                                        m['imatge'], fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
+                                        movie["imatge"],
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
                                           color: Colors.grey[800],
-                                          child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                          child: const Icon(
+                                            Icons.broken_image,
+                                            size: 40,
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       )
                                     : Container(
                                         color: Colors.grey[800],
-                                        child: const Icon(Icons.movie, color: Colors.grey, size: 40),
+                                        child: const Icon(
+                                          Icons.movie,
+                                          size: 40,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                               ),
                               Container(
                                 color: Colors.black87,
-                                padding: const EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(8.0),
                                 child: Text(
-                                  m['titol'] ?? 'Sin título',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  movie["titol"] ?? "Sin título",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -205,8 +215,19 @@ class FavoritosPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                      );
-                    },
+                      ),
+                      // Botón para quitar de favoritos (en la esquina superior derecha).
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: IconButton(
+                          icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
+                          onPressed: () async {
+                            await removeFavorite(movie);
+                          },
+                        ),
+                      ),
+                    ],
                   );
                 },
               );
