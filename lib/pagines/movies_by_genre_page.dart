@@ -35,10 +35,30 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   // Agrupación: mapa de género a lista de películas.
   Map<String, List<Map<String, dynamic>>> moviesByGenre = {};
 
+  // ScrollController para la paginación automática.
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _cargarPeliculasApi();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // Escucha el scroll para detectar cuando se acerca al final.
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100 &&
+        !_isLoadingMore &&
+        _searchQuery.isEmpty) {
+      _loadMoreMovies();
+    }
   }
 
   Future<void> _cargarPeliculasApi() async {
@@ -59,7 +79,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
-          "id": movie.id, // Se agrega el id aquí.
+          "id": movie.id,
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -95,7 +115,6 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   void _inicializarMoviesByGenre() {
     moviesByGenre = {};
     for (var movie in db.pelicules) {
-      // Obtenemos la lista de IDs de géneros.
       List<dynamic> genreIds = movie["genre_ids"] ?? [];
       for (var id in genreIds) {
         final genreName = _genreMapping[id] ?? "Sin género";
@@ -124,7 +143,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       List<Map<String, dynamic>> moviesFromApi = rawMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
-          "id": movie.id, // Se agrega el id aquí también.
+          "id": movie.id,
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -169,7 +188,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
       List<Map<String, dynamic>> moviesFromApi = newMovies.map((item) {
         final movie = Movie.fromJson(Map<String, dynamic>.from(item));
         return {
-          "id": movie.id, // Se agrega el id aquí también.
+          "id": movie.id,
           "titol": movie.title,
           "descripcio": movie.overview,
           "imatge": movie.posterPath.isNotEmpty
@@ -200,14 +219,13 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     }
   }
 
- 
   // Función para actualizar favoritos en Firebase.
   Future<void> toggleFavoriteFirebase(Map<String, dynamic> movie, bool isFavorite) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final String docId = '${user.uid}_${movie["id"]}';
     final CollectionReference favoritesCollection =
-    FirebaseFirestore.instance.collection("favoritos");
+        FirebaseFirestore.instance.collection("favoritos");
     if (isFavorite) {
       await favoritesCollection.doc(docId).set({
         "userId": user.uid,
@@ -228,7 +246,7 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     await toggleFavoriteFirebase(db.pelicules[posLlista], nuevoValor);
   }
 
-  // Renombramos la función para eliminar película a removePeli para evitar conflicto.
+  // Función para eliminar película.
   void removePeli(int posLlista) {
     setState(() {
       db.pelicules.removeAt(posLlista);
@@ -274,9 +292,18 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                TextField(controller: titleController, decoration: const InputDecoration(labelText: "Título")),
-                TextField(controller: descController, decoration: const InputDecoration(labelText: "Descripción")),
-                TextField(controller: imageController, decoration: const InputDecoration(labelText: "URL Imagen")),
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: "Título"),
+                ),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: "Descripción"),
+                ),
+                TextField(
+                  controller: imageController,
+                  decoration: const InputDecoration(labelText: "URL Imagen"),
+                ),
               ],
             ),
           ),
@@ -311,8 +338,8 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    // Se muestran las películas agrupadas por género.
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: Barra(username: username),
       drawer: Draww(username: username),
       floatingActionButton: Column(
@@ -336,117 +363,150 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Campo de búsqueda.
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  labelText: "Buscar película",
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = "";
-                      });
-                      _currentPage = 1;
-                      _cargarPeliculasApi();
-                    },
+      // Se utiliza NotificationListener para detectar el scroll y cargar más películas
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 100 &&
+              !_isLoadingMore &&
+              _searchQuery.isEmpty) {
+            _loadMoreMovies();
+          }
+          return false;
+        },
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            children: [
+              // Campo de búsqueda.
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepOrangeAccent.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                ),
-                onSubmitted: (query) {
-                  _searchMovies(query);
-                },
-                onChanged: (query) {
-                  if (query.isEmpty) {
-                    _currentPage = 1;
-                    _searchMovies("");
-                  }
-                },
-              ),
-            ),
-            // Se muestran las películas agrupadas por género.
-            ...moviesByGenre.entries.map((entry) {
-              final genre = entry.key;
-              final movieList = entry.value;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      genre,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 250,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: movieList.length,
-                        itemBuilder: (context, index) {
-                          final movie = movieList[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Stack(
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => DetallePelicula(movie: movie),
-                                      ),
-                                    );
-                                  },
-                                  child: SizedBox(
-                                    width: 150,
-                                    child: ItemPelicula(
-                                      textPeli: movie["titol"],
-                                      descripcio: movie["descripcio"],
-                                      imatge: movie["imatge"],
-                                      valorCheckBox: movie["favorito"],
-                                      canviaValorCheckbox: (valor) => canviaCheckbox(valor, db.pelicules.indexOf(movie)),
-                                      esborraPeli: (context) => removePeli(db.pelicules.indexOf(movie)),
-                                    ),
-                                  ),
-                                ),
-                                if (editMode)
-                                  Positioned(
-                                    top: 0,
-                                    right: 0,
-                                    child: IconButton(
-                                      icon: const Icon(Icons.edit, size: 20, color: Colors.white),
-                                      onPressed: () {
-                                        final globalIndex = db.pelicules.indexOf(movie);
-                                        _mostrarDialogoEdicionDB(globalIndex);
-                                      },
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
+                  child: TextField(
+                    style: const TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: "Buscar película...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery = "";
+                          });
+                          _currentPage = 1;
+                          _cargarPeliculasApi();
                         },
                       ),
                     ),
-                  ],
+                    onSubmitted: (query) {
+                      _searchMovies(query);
+                    },
+                    onChanged: (query) {
+                      if (query.isEmpty) {
+                        _currentPage = 1;
+                        _searchMovies("");
+                      }
+                    },
+                  ),
                 ),
-              );
-            }),
-            // Botón para cargar más películas (paginación).
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: _loadMoreMovies,
-                child: _isLoadingMore
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Cargar más películas"),
               ),
-            ),
-          ],
+              // Se muestran las películas agrupadas por género.
+              ...moviesByGenre.entries.map((entry) {
+                final genre = entry.key;
+                final movieList = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        genre,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 250,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: movieList.length,
+                          itemBuilder: (context, index) {
+                            final movie = movieList[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Stack(
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DetallePelicula(movie: movie),
+                                        ),
+                                      );
+                                    },
+                                    child: SizedBox(
+                                      width: 150,
+                                      child: ItemPelicula(
+                                        textPeli: movie["titol"],
+                                        descripcio: movie["descripcio"],
+                                        imatge: movie["imatge"],
+                                        valorCheckBox: movie["favorito"],
+                                        canviaValorCheckbox: (valor) =>
+                                            canviaCheckbox(valor, db.pelicules.indexOf(movie)),
+                                        esborraPeli: (context) => removePeli(db.pelicules.indexOf(movie)),
+                                      ),
+                                    ),
+                                  ),
+                                  if (editMode)
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.edit, size: 20, color: Colors.white),
+                                        onPressed: () {
+                                          final globalIndex = db.pelicules.indexOf(movie);
+                                          _mostrarDialogoEdicionDB(globalIndex);
+                                        },
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              // Botón para cargar más películas (opcional si se quiere dar feedback adicional).
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: _loadMoreMovies,
+                  child: _isLoadingMore
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("Cargar más películas"),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

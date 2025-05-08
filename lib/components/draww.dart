@@ -9,12 +9,12 @@ class Draww extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      // Fondo general negro para el Drawer
+      // Fondo general negro para el Drawer.
       backgroundColor: Colors.black,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Encabezado con degradado de gris oscuro a negro
+          // Encabezado con degradado de gris oscuro a negro.
           DrawerHeader(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -26,7 +26,7 @@ class Draww extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Avatar con ícono para evitar assets locales
+                // Avatar con ícono para evitar assets locales.
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.grey.shade700,
@@ -37,7 +37,7 @@ class Draww extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Nombre del usuario
+                // Nombre del usuario.
                 Text(
                   username ?? 'Usuario',
                   style: const TextStyle(
@@ -46,7 +46,7 @@ class Draww extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                // Email (si está disponible)
+                // Email (si está disponible).
                 if (email != null && email!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
@@ -60,7 +60,7 @@ class Draww extends StatelessWidget {
               ],
             ),
           ),
-          // Opciones del Drawer
+          // Opciones del Drawer.
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -106,6 +106,14 @@ class Draww extends StatelessWidget {
                   },
                 ),
                 _drawerItem(
+                  icon: Icons.list,
+                  text: 'Listas',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/llistes', arguments: username);
+                  },
+                ),
+                _drawerItem(
                   icon: Icons.settings,
                   text: 'Configuración',
                   onTap: () {
@@ -130,7 +138,7 @@ class Draww extends StatelessWidget {
               ],
             ),
           ),
-          // Botón "Cerrar sesión"
+          // Botón "Cerrar sesión".
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(
@@ -138,7 +146,7 @@ class Draww extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/login',
-                      (Route<dynamic> route) => false,
+                  (Route<dynamic> route) => false,
                 );
               },
               icon: const Icon(Icons.logout, color: Colors.white),
