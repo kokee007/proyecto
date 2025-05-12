@@ -8,9 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:proyecto/main.dart'; // para themeNotifier
+import 'package:flutter/services.dart'; // para PlatformException
 
 /// ------------------------------------------------------------------
-/// 1) FONDO ANIMADO DE TUERCAS (⚙️) – sin cambios
+/// 1) FONDO ANIMADO DE TUERCAS (⚙️)
 /// ------------------------------------------------------------------
 class Gear {
   final Offset position;
@@ -37,8 +38,7 @@ class GearFieldPainter extends CustomPainter {
       final opacity = 0.5 + 0.5 * sin(animationValue + gear.twinkleOffset);
       tp.text = TextSpan(
         text: '⚙️',
-        style: TextStyle(
-            fontSize: gear.size, color: Colors.grey.withOpacity(opacity)),
+        style: TextStyle(fontSize: gear.size, color: Colors.grey.withOpacity(opacity)),
       );
       tp.layout();
       final dx = gear.position.dx * size.width;
@@ -97,12 +97,10 @@ class _AnimatedGearBackgroundState extends State<AnimatedGearBackground>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, __) {
-        return CustomPaint(
-          size: Size.infinite,
-          painter: GearFieldPainter(gears: _gears, animationValue: _anim.value),
-        );
-      },
+      builder: (_, __) => CustomPaint(
+        size: Size.infinite,
+        painter: GearFieldPainter(gears: _gears, animationValue: _anim.value),
+      ),
     );
   }
 }
@@ -117,17 +115,17 @@ class ConfiguracionPage extends StatefulWidget {
 }
 
 class _ConfiguracionPageState extends State<ConfiguracionPage> {
-  final _auth = FirebaseAuth.instance;
+  final _auth      = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
-  final _picker = ImagePicker();
+  final _picker    = ImagePicker();
 
   final _nameCtrl = TextEditingController();
   final _nickCtrl = TextEditingController();
-  final _urlCtrl = TextEditingController();
-  bool _isDark = false;
-  bool _saving = false;
+  final _urlCtrl  = TextEditingController();
+  bool  _isDark   = false;
+  bool  _saving   = false;
 
-  XFile? _pickedImage;
+  XFile?  _pickedImage;
   String? _base64Image;
   String? _urlImage;
 
@@ -143,22 +141,23 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
     final doc = await _firestore.collection('usuaris').doc(user.uid).get();
     if (!doc.exists) return;
     final data = doc.data()!;
-    _nameCtrl.text = data['nom'] ?? '';
-    _nickCtrl.text = data['apodo'] ?? '';
-    _isDark = data['darkTheme'] ?? false;
+    _nameCtrl.text    = data['nom']       ?? '';
+    _nickCtrl.text    = data['apodo']     ?? '';
+    _isDark           = data['darkTheme'] ?? false;
     themeNotifier.value = _isDark ? ThemeMode.dark : ThemeMode.light;
-    _base64Image = data['imgBase64'];
-    _urlImage = data['imgUrl'];
-    _urlCtrl.text = _urlImage ?? '';
+    _base64Image      = data['imgBase64'];
+    _urlImage         = data['imgUrl'];
+    _urlCtrl.text     = _urlImage ?? '';
     setState(() {});
   }
 
   Future<void> _pickImage() async {
     try {
-      final picked = await _picker.pickImage(
+      final XFile? picked = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 600,
         maxHeight: 600,
+        imageQuality: 80,
       );
       if (picked == null) return;
       _pickedImage = picked;
@@ -166,7 +165,18 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
       final bytes = await picked.readAsBytes();
       _base64Image = base64Encode(bytes);
       setState(() {});
-    } catch (e) {
+    }
+    on OutOfMemoryError {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La imagen es demasiado grande')),
+      );
+    }
+    on PlatformException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo acceder a la galería: ${e.message}')),
+      );
+    }
+    catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al seleccionar imagen: $e')),
       );
@@ -178,11 +188,11 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
     final user = _auth.currentUser;
     if (user == null) return;
     final upd = {
-      'nom': _nameCtrl.text.trim(),
-      'apodo': _nickCtrl.text.trim(),
+      'nom':       _nameCtrl.text.trim(),
+      'apodo':     _nickCtrl.text.trim(),
       'darkTheme': _isDark,
       'imgBase64': _base64Image,
-      'imgUrl': _urlCtrl.text.trim(),
+      'imgUrl':    _urlCtrl.text.trim(),
     };
     try {
       await _firestore.collection('usuaris').doc(user.uid).update(upd);
@@ -204,36 +214,28 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text('Cambiar contraseña',
-            style: TextStyle(color: Colors.white)),
+        title: const Text('Cambiar contraseña', style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: ctrl,
           obscureText: true,
           decoration: const InputDecoration(
             hintText: 'Nueva contraseña',
             hintStyle: TextStyle(color: Colors.white54),
-            enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white54)),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
           ),
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar',
-                  style: TextStyle(color: Colors.white))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.white))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrangeAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrangeAccent),
             onPressed: () async {
               try {
                 await _auth.currentUser?.updatePassword(ctrl.text.trim());
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Contraseña actualizada')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contraseña actualizada')));
                 Navigator.pop(context);
               } catch (e) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Error: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
               }
             },
             child: const Text('Aceptar'),
@@ -246,13 +248,39 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
   @override
   Widget build(BuildContext context) {
     final bodyColor = Theme.of(context).textTheme.bodyMedium?.color;
-    ImageProvider? avatar;
+
+    // Construir avatar siempre con Image.* y errorBuilder
+    late final Widget avatarWidget;
     if (_pickedImage != null) {
-      avatar = FileImage(File(_pickedImage!.path));
+      avatarWidget = CircleAvatar(
+        radius: 60,
+        backgroundColor: Theme.of(context).dividerColor,
+        child: ClipOval(
+          child: Image.file(
+            File(_pickedImage!.path),
+            width: 120, height: 120, fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Icon(Icons.error, size: 60, color: Theme.of(context).hintColor),
+          ),
+        ),
+      );
     } else if (_base64Image?.isNotEmpty == true) {
-      avatar = MemoryImage(base64Decode(_base64Image!));
-    } else if (_urlCtrl.text.isNotEmpty) {
-      avatar = NetworkImage(_urlCtrl.text);
+      avatarWidget = CircleAvatar(
+        radius: 60,
+        backgroundColor: Theme.of(context).dividerColor,
+        child: ClipOval(
+          child: Image.memory(
+            base64Decode(_base64Image!),
+            width: 120, height: 120, fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Icon(Icons.error, size: 60, color: Theme.of(context).hintColor),
+          ),
+        ),
+      );
+    } else {
+      avatarWidget = CircleAvatar(
+        radius: 60,
+        backgroundColor: Theme.of(context).dividerColor,
+        child: Icon(Icons.person, size: 60, color: Theme.of(context).hintColor),
+      );
     }
 
     return Scaffold(
@@ -260,8 +288,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
         title: const Text('Configuración'),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         leading: IconButton(
-          icon:
-              Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -272,67 +299,53 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Theme.of(context).dividerColor,
-                    backgroundImage: avatar,
-                    child: avatar == null
-                        ? Icon(Icons.person,
-                            size: 60, color: Theme.of(context).hintColor)
-                        : null,
-                  ),
-                ),
+                GestureDetector(onTap: _pickImage, child: avatarWidget),
                 const SizedBox(height: 8),
-                Text('Toca la imagen para cambiarla',
-                    style: TextStyle(color: Theme.of(context).hintColor)),
+                Text('Toca la imagen para cambiarla', style: TextStyle(color: Theme.of(context).hintColor)),
                 const SizedBox(height: 16),
+
+                // URL Imagen (opcional)
                 TextField(
                   controller: _urlCtrl,
                   decoration: InputDecoration(
                     hintText: 'URL Imagen (opcional)',
-                    prefixIcon: Icon(Icons.link,
-                        color: Theme.of(context).iconTheme.color),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(Icons.link, color: Theme.of(context).iconTheme.color),
+                    filled: true, fillColor: Theme.of(context).cardColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   style: TextStyle(color: bodyColor),
                 ),
                 const SizedBox(height: 16),
+
+                // Nombre
                 TextField(
                   controller: _nameCtrl,
                   decoration: InputDecoration(
                     labelText: 'Nombre',
-                    prefixIcon: Icon(Icons.person,
-                        color: Theme.of(context).iconTheme.color),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(Icons.person, color: Theme.of(context).iconTheme.color),
+                    filled: true, fillColor: Theme.of(context).cardColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   style: TextStyle(color: bodyColor),
                 ),
                 const SizedBox(height: 16),
+
+                // Apodo
                 TextField(
                   controller: _nickCtrl,
                   decoration: InputDecoration(
                     labelText: 'Apodo',
-                    prefixIcon: Icon(Icons.tag,
-                        color: Theme.of(context).iconTheme.color),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(Icons.tag, color: Theme.of(context).iconTheme.color),
+                    filled: true, fillColor: Theme.of(context).cardColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   style: TextStyle(color: bodyColor),
                 ),
                 const SizedBox(height: 16),
+
+                // Switch modo oscuro
                 SwitchListTile(
-                  title:
-                      Text('Modo oscuro', style: TextStyle(color: bodyColor)),
+                  title: Text('Modo oscuro', style: TextStyle(color: bodyColor)),
                   value: _isDark,
                   onChanged: (v) {
                     setState(() => _isDark = v);
@@ -340,44 +353,40 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
                   },
                   activeColor: Colors.redAccent,
                   tileColor: Theme.of(context).cardColor,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 const SizedBox(height: 24),
+
+                // Guardar cambios
                 ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
                     backgroundColor: Colors.redAccent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _saving
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Guardar cambios',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                      : const Text('Guardar cambios', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
                 const SizedBox(height: 16),
+
+                // Cambiar contraseña
                 OutlinedButton(
                   onPressed: _changePassword,
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
-                    side: BorderSide(
-                        color: Theme.of(context).colorScheme.secondary),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    side: BorderSide(color: Theme.of(context).colorScheme.secondary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text('Cambiar contraseña',
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.secondary,
-                          fontSize: 16)),
+                  child: Text('Cambiar contraseña', style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 16)),
                 ),
                 const SizedBox(height: 16),
+
+                // Cerrar sesión
                 TextButton(
-                  onPressed: () => _auth.signOut().then(
-                      (_) => Navigator.pushReplacementNamed(context, '/login')),
-                  child:
-                      Text('Cerrar sesión', style: TextStyle(color: bodyColor)),
+                  onPressed: () => _auth.signOut().then((_) => Navigator.pushReplacementNamed(context, '/login')),
+                  child: Text('Cerrar sesión', style: TextStyle(color: bodyColor)),
                 ),
               ],
             ),
