@@ -1,3 +1,4 @@
+// lib/components/item_pelicula.dart
 import 'package:flutter/material.dart';
 
 class ItemPelicula extends StatelessWidget {
@@ -7,7 +8,7 @@ class ItemPelicula extends StatelessWidget {
   final bool valorCheckBox;
   final ValueChanged<bool?>? canviaValorCheckbox;
   final Function(BuildContext)? esborraPeli;
-  final bool showHeart; // para mostrar/ocultar el corazón
+  final bool showHeart;
 
   const ItemPelicula({
     Key? key,
@@ -22,19 +23,21 @@ class ItemPelicula extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return AspectRatio(
-      aspectRatio: 0.65, // Ajusta según tu gusto
+      aspectRatio: 0.65,
       child: Container(
         margin: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Colors.black45,
+              color: theme.shadowColor.withOpacity(0.25),
               blurRadius: 4,
-              offset: Offset(0, 2),
-            )
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: ClipRRect(
@@ -42,7 +45,6 @@ class ItemPelicula extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Imagen arriba
               Expanded(
                 child: imatge.isNotEmpty
                     ? Image.network(
@@ -50,29 +52,28 @@ class ItemPelicula extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: Colors.grey,
+                            color: theme.dividerColor,
                             alignment: Alignment.center,
-                            child: const Icon(
+                            child: Icon(
                               Icons.image_not_supported,
                               size: 50,
-                              color: Colors.white,
+                              color: theme.iconTheme.color,
                             ),
                           );
                         },
                       )
                     : Container(
-                        color: Colors.grey,
+                        color: theme.dividerColor,
                         alignment: Alignment.center,
-                        child: const Icon(
+                        child: Icon(
                           Icons.image,
                           size: 50,
-                          color: Colors.white,
+                          color: theme.iconTheme.color,
                         ),
                       ),
               ),
-              // Pie con el título y (opcional) el corazón
               Container(
-                color: Colors.black87,
+                color: theme.cardColor,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: Row(
                   children: [
@@ -81,18 +82,19 @@ class ItemPelicula extends StatelessWidget {
                         textPeli,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        style: theme.textTheme.bodyMedium!
+                            .copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                     if (showHeart)
                       IconButton(
                         icon: Icon(
-                          valorCheckBox ? Icons.favorite : Icons.favorite_border,
-                          color: valorCheckBox ? Colors.redAccent : Colors.white,
+                          valorCheckBox
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: valorCheckBox
+                              ? theme.colorScheme.secondary
+                              : theme.iconTheme.color,
                         ),
                         onPressed: () {
                           if (canviaValorCheckbox != null) {

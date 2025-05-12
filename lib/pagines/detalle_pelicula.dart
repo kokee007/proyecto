@@ -1,46 +1,47 @@
+// lib/pagines/detalle_pelicula.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:proyecto/api/tmdb_api.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-/// Función para transformar el JSON de TMDB en un Map que incluya la propiedad "id".
-Map<String, dynamic> parseMovie(Map<String, dynamic> json) {
-  return {
-    "id": json["id"], // Se extrae el id tal como lo devuelve TMDB.
-    "titol": json["title"],
-    "descripcio": json["overview"],
-    "imatge": json["poster_path"] != null
-        ? "https://image.tmdb.org/t/p/w500${json["poster_path"]}"
-        : "",
-    "release_date": json["release_date"],
-    "vote_average": json["vote_average"],
-    "vote_count": json["vote_count"],
-    "popularity": json["popularity"],
-    "original_language": json["original_language"],
-    "runtime": json["runtime"],
-    "tagline": json["tagline"],
-    "favorito": false, // Valor por defecto.
-  };
-}
+/// Convierte JSON de TMDB en un Map usable.
+Map<String, dynamic> parseMovie(Map<String, dynamic> json) => {
+      "id": json["id"],
+      "titol": json["title"],
+      "descripcio": json["overview"],
+      "imatge": json["poster_path"] != null
+          ? "https://image.tmdb.org/t/p/w500${json["poster_path"]}"
+          : "",
+      "release_date": json["release_date"],
+      "vote_average": json["vote_average"],
+      "vote_count": json["vote_count"],
+      "popularity": json["popularity"],
+      "original_language": json["original_language"],
+      "runtime": json["runtime"],
+      "tagline": json["tagline"],
+      "favorito": false,
+    };
 
-/// Función para obtener el nombre del usuario actual desde la colección "usuaris".
+/// Recupera el nombre del usuario logueado.
 Future<String> getCurrentUserName() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user != null) {
-    final doc = await FirebaseFirestore.instance.collection("usuaris").doc(user.uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection("usuaris")
+        .doc(user.uid)
+        .get();
     return doc.data()?["nom"] ?? "Desconegut";
   }
   return "Desconegut";
 }
 
 class DetallePelicula extends StatelessWidget {
-  final Map movie; // Objeto con los datos de la película.
-
+  final Map<String, dynamic> movie;
   const DetallePelicula({Key? key, required this.movie}) : super(key: key);
 
-  // Mapeo de códigos de idioma a nombres completos.
-  final Map<String, String> languageMapping = const {
+  static const Map<String, String> languageMapping = {
     "en": "English",
     "es": "Español",
     "fr": "Français",
@@ -50,209 +51,194 @@ class DetallePelicula extends StatelessWidget {
     "ja": "Japanese",
     "ko": "Korean",
     "zh": "Chinese",
-    "hi": "Hindi"
+    "hi": "Hindi",
   };
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
         children: [
           Text("$label: ",
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.white70)),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.white)),
-          ),
+              style: theme.textTheme.bodyMedium!
+                  .copyWith(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );
   }
 
-  // Función para abrir el trailer.
-  void _openTrailer(String trailerKey, BuildContext context) async {
-    final trailerUrl = "https://www.youtube.com/watch?v=$trailerKey";
-    if (await canLaunch(trailerUrl)) {
-      await launch(trailerUrl);
+  void _openTrailer(String key, BuildContext context) async {
+    final url = "https://www.youtube.com/watch?v=$key";
+    if (await canLaunch(url)) {
+      await launch(url);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo abrir el trailer')));
+        const SnackBar(content: Text('No se pudo abrir el trailer')),
+      );
     }
   }
 
-  // Diálogo para agregar comentario (se obtiene el nombre del usuario actual).
-  void _showAddCommentDialog(BuildContext context, int movieId) {
-    final TextEditingController _commentController = TextEditingController();
+  void _showAddCommentDialog(BuildContext ctx, int movieId) {
+    final ctrl = TextEditingController();
     double rating = 5.0;
+    final theme = Theme.of(ctx);
 
     showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: Colors.black87,
-            title: const Text("Agregar comentario", style: TextStyle(color: Colors.white)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Selecciona tu nota:", style: TextStyle(color: Colors.white70)),
-                Slider(
-                  activeColor: Colors.deepOrangeAccent,
-                  inactiveColor: Colors.grey,
-                  value: rating,
-                  min: 1,
-                  max: 10,
-                  divisions: 9,
-                  label: rating.toString(),
-                  onChanged: (value) {
-                    setState(() {
-                      rating = value;
-                    });
-                  },
-                ),
-                TextField(
-                  controller: _commentController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: "Escribe tu reseña aquí...",
-                    hintStyle: TextStyle(color: Colors.white38),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white54),
-                    ),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
-                child: const Text("Cancelar"),
+      context: ctx,
+      builder: (_) => StatefulBuilder(
+        builder: (_, setState) => AlertDialog(
+          backgroundColor: theme.dialogBackgroundColor,
+          title:
+              Text("Agregar comentario", style: theme.textTheme.titleLarge),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Selecciona tu nota:", style: theme.textTheme.bodyMedium),
+              Slider(
+                activeColor: theme.colorScheme.secondary,
+                inactiveColor: theme.dividerColor,
+                value: rating,
+                min: 1,
+                max: 10,
+                divisions: 9,
+                label: rating.toString(),
+                onChanged: (v) => setState(() => rating = v),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrangeAccent,
-                  foregroundColor: Colors.white,
+              TextField(
+                controller: ctrl,
+                style: theme.textTheme.bodyMedium,
+                decoration: InputDecoration(
+                  hintText: "Escribe tu reseña aquí.",
+                  hintStyle: theme.textTheme.bodySmall,
+                  enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: theme.dividerColor)),
                 ),
-                onPressed: () async {
-                  String comment = _commentController.text.trim();
-                  if (comment.isNotEmpty) {
-                    String author = await getCurrentUserName();
-                    await _saveComment(movieId, rating, comment, author);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Comentario guardado")));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Debes escribir una reseña")));
-                  }
-                },
-                child: const Text("Enviar"),
+                maxLines: 3,
               ),
             ],
-          );
-        });
-      },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text("Cancelar", style: theme.textTheme.labelLarge),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.secondary),
+              onPressed: () async {
+                final comment = ctrl.text.trim();
+                if (comment.isNotEmpty) {
+                  final author = await getCurrentUserName();
+                  await _saveComment(movieId, rating, comment, author);
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Comentario guardado')));
+                } else {
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Debes escribir una reseña')));
+                }
+              },
+              child: Text("Aceptar",
+                  style: theme.textTheme.labelLarge!
+                      .copyWith(color: theme.colorScheme.onSecondary)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Future<void> _saveComment(
       int movieId, double rating, String comment, String author) async {
-    final FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    await firestore.collection("comentarios").add({
+    final fs = FirebaseFirestore.instance;
+    await fs.collection("comentarios").add({
       "movieId": movieId,
       "rating": rating,
       "comment": comment,
       "author": author,
       "timestamp": FieldValue.serverTimestamp(),
     });
-
-    await firestore
+    // Opcional: guarda en subcolección de películas
+    await fs
         .collection("peliculas")
         .doc(movieId.toString())
         .set(movie.cast<String, dynamic>());
   }
 
-  // Construye la lista de comentarios.
-  Widget _buildCommentsList(int movieId) {
+  Widget _buildCommentsList(BuildContext context, int movieId) {
+    final theme = Theme.of(context);
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection("comentarios")
           .where("movieId", isEqualTo: movieId)
           .orderBy("timestamp", descending: true)
           .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Text("Error: ${snapshot.error}",
-              style: const TextStyle(color: Colors.white70));
+      builder: (ctx, snap) {
+        if (snap.hasError) {
+          return Text("Error: ${snap.error}",
+              style: theme.textTheme.bodyMedium!
+                  .copyWith(color: theme.colorScheme.error));
         }
-        if (snapshot.hasData && snapshot.data!.docs.isEmpty) {
-          return const Text("No hay comentarios aún",
-              style: TextStyle(color: Colors.white70));
+        if (!snap.hasData || snap.data!.docs.isEmpty) {
+          return Text("No hay comentarios aún",
+              style: theme.textTheme.bodyMedium!
+                  .copyWith(color: theme.hintColor));
         }
-        if (snapshot.hasData) {
-          final comments = snapshot.data!.docs;
-          return ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: comments.length,
-            itemBuilder: (context, index) {
-              final commentData = comments[index].data() as Map<String, dynamic>;
-              return Card(
-                color: Colors.black87,
-                margin: const EdgeInsets.symmetric(vertical: 4.0),
-                child: ListTile(
-                  title: Text(
-                    commentData["author"] ?? "Desconegut",
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        commentData["comment"] ?? "",
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "Nota: ${commentData["rating"]?.toString() ?? "N/A"}",
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
+        final comments = snap.data!.docs;
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: comments.length,
+          itemBuilder: (__, index) {
+            final c = comments[index].data()! as Map<String, dynamic>;
+            return Card(
+              color: theme.cardColor,
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                title: Text(
+                  c["author"] ?? "Usuario",
+                  style: theme.textTheme.bodyMedium!
+                      .copyWith(fontWeight: FontWeight.bold),
                 ),
-              );
-            },
-          );
-        }
-        return const Text("No hay comentarios aún",
-            style: TextStyle(color: Colors.white70));
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if ((c["comment"] as String?)?.isNotEmpty == true)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(c["comment"]!,
+                            style: theme.textTheme.bodyMedium),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Text("Nota: ${c["rating"]}",
+                          style: theme.textTheme.bodySmall),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("Datos de la película: $movie");
-    debugPrint("Llaves disponibles: ${movie.keys}");
-    debugPrint("movie['id']: ${movie['id']}");
-
-    String idioma = movie["original_language"] ?? "";
-    idioma = languageMapping[idioma] ?? idioma;
-    final int movieId = movie["id"] is int ? movie["id"] as int : 0;
+    final theme = Theme.of(context);
+    final code = movie["original_language"] ?? "";
+    final idioma = languageMapping[code] ?? code;
+    final movieId = (movie["id"] is int) ? movie["id"] as int : 0;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const SizedBox.shrink(),
-        backgroundColor: Colors.black87,
-        iconTheme: const IconThemeData(color: Colors.deepOrangeAccent),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        iconTheme: theme.iconTheme,
       ),
       body: CustomScrollView(
         slivers: [
@@ -264,19 +250,17 @@ class DetallePelicula extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  movie["imatge"] != null && movie["imatge"].toString().isNotEmpty
-                      ? Image.network(
-                          movie["imatge"],
-                          fit: BoxFit.cover,
-                        )
-                      : Container(color: Colors.grey[800]),
+                  movie["imatge"] != null &&
+                          movie["imatge"].toString().isNotEmpty
+                      ? Image.network(movie["imatge"], fit: BoxFit.cover)
+                      : Container(color: theme.dividerColor),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.black.withOpacity(0.7),
+                          theme.scaffoldBackgroundColor.withOpacity(0.7),
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7)
+                          theme.scaffoldBackgroundColor.withOpacity(0.7),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -289,48 +273,42 @@ class DetallePelicula extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Card(
-                    color: Colors.black87,
+                    color: theme.cardColor,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 8,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            movie["titol"] ?? "Título no disponible",
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                          Text(movie["titol"] ?? "Título no disponible",
+                              style: theme.textTheme.headlineSmall!
+                                  .copyWith(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
-                          _buildInfoRow("ID", movieId.toString()),
-                          _buildInfoRow("Fecha", movie["release_date"] ?? ""),
-                          _buildInfoRow("Idioma", idioma),
-                          _buildInfoRow("Duración", "${movie["runtime"]} minutos"),
+                          _buildInfoRow(context, "Fecha",
+                              movie["release_date"] ?? ""),
+                          _buildInfoRow(context, "Idioma", idioma),
+                          _buildInfoRow(context, "Duración",
+                              "${movie["runtime"]} minutos"),
                           if ((movie["tagline"] ?? "").toString().isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8),
                               child: Text(
                                 "\"${movie["tagline"]}\"",
-                                style: const TextStyle(
-                                    fontStyle: FontStyle.italic, color: Colors.redAccent),
+                                style: theme.textTheme.bodySmall!
+                                    .copyWith(fontStyle: FontStyle.italic),
                               ),
                             ),
                           const SizedBox(height: 8),
-                          Text(
-                            movie["descripcio"] ?? "Sin descripción",
-                            style: const TextStyle(fontSize: 16, color: Colors.white70),
-                          ),
+                          Text(movie["descripcio"] ?? "Sin descripción",
+                              style: theme.textTheme.bodyMedium),
                         ],
                       ),
                     ),
@@ -340,49 +318,55 @@ class DetallePelicula extends StatelessWidget {
                     future: movieId != 0
                         ? TmdbApi().fetchTrailerKey(movieId: movieId)
                         : Future.value(null),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasData && snapshot.data != null) {
+                    builder: (ctx, snap) {
+                      if (snap.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      } else if (snap.hasData && snap.data != null) {
                         return ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepOrangeAccent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            backgroundColor: theme.colorScheme.secondary,
+                            foregroundColor: theme.colorScheme.onSecondary,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 16),
                           ),
-                          onPressed: () => _openTrailer(snapshot.data!, context),
-                          icon: const Icon(Icons.play_arrow, color: Colors.white),
-                          label: const Text("Ver Trailer", style: TextStyle(color: Colors.white)),
+                          onPressed: () =>
+                              _openTrailer(snap.data!, context),
+                          icon: Icon(Icons.play_arrow,
+                              color: theme.iconTheme.color),
+                          label: Text("Ver Trailer",
+                              style: theme.textTheme.labelLarge),
                         );
                       } else {
-                        return const Text("Trailer no disponible",
-                            style: TextStyle(color: Colors.white70));
+                        return Text("Trailer no disponible",
+                            style: theme.textTheme.bodyMedium!
+                                .copyWith(color: theme.hintColor));
                       }
                     },
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepOrangeAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      backgroundColor: theme.colorScheme.secondary,
+                      foregroundColor: theme.colorScheme.onSecondary,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 16),
                     ),
-                    onPressed: () => _showAddCommentDialog(context, movieId),
-                    icon: const Icon(Icons.add_comment, color: Colors.white),
-                    label: const Text("Agregar comentario", style: TextStyle(color: Colors.white)),
+                    onPressed: () =>
+                        _showAddCommentDialog(context, movieId),
+                    icon: Icon(Icons.add_comment,
+                        color: theme.iconTheme.color),
+                    label: Text("Agregar comentario",
+                        style: theme.textTheme.labelLarge),
                   ),
                   const SizedBox(height: 16),
-                  const Divider(color: Colors.white70),
-                  const Text(
-                    "Comentarios:",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  Divider(color: theme.dividerColor),
+                  Text("Comentarios:",
+                      style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 8),
-                  _buildCommentsList(movieId),
+                  // <-- aquí pasamos el contexto
+                  _buildCommentsList(context, movieId),
                 ],
               ),
             ),
