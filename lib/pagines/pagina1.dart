@@ -256,6 +256,7 @@ class _Pagina1State extends State<Pagina1> {
     return raw.map((item) {
       final movie = Movie.fromJson(Map<String, dynamic>.from(item));
       return {
+        "id": item["id"], 
         "titol": movie.title,
         "descripcio": movie.overview,
         "imatge": movie.posterPath.isNotEmpty
@@ -379,9 +380,9 @@ class _Pagina1State extends State<Pagina1> {
                   ctx,
                   MaterialPageRoute(
                     builder: (_) =>
-                        DetallePelicula(movie: movie),
+                        DetallePelicula(movie: movie,key: ValueKey(movie["id"]),
                   ),
-                ),
+                ),),
                 child: SizedBox(
                   width: 150,
                   child: ItemPelicula(
