@@ -66,9 +66,10 @@ class MainApp extends StatelessWidget {
             '/noticias':      (ctx) => const Noticias(),
             '/favoritos':     (ctx) => const FavoritosPage(),
             '/configuracion': (ctx) => const ConfiguracionPage(),
+            '/llistes': (context) => const Llistes(),
           },
         );
-        '/llistes': (context) => const Llistes(),
+        
       },
     );
   }

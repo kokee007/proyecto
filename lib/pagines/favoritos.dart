@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,110 +7,13 @@ import 'package:proyecto/components/barra.dart';
 import 'package:proyecto/components/draww.dart';
 import 'package:proyecto/pagines/detalle_pelicula.dart';
 
-/// Modelo interno para un corazón animado.
-class _Heart {
-  final Offset position;
-  final double size;
-  final double rotation;
-  final double twinkleOffset;
-  _Heart({
-    required this.position,
-    required this.size,
-    required this.rotation,
-    required this.twinkleOffset,
-  });
-}
-
-/// CustomPainter para dibujar corazones titilantes.
-class _HeartFieldPainter extends CustomPainter {
-  final List<_Heart> hearts;
-  final double animationValue;
-  _HeartFieldPainter({required this.hearts, required this.animationValue});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final painter = TextPainter(textDirection: TextDirection.ltr);
-    for (final heart in hearts) {
-      final opacity = 0.5 + 0.5 * sin(animationValue + heart.twinkleOffset);
-      painter.text = TextSpan(
-        text: '❤️',
-        style: TextStyle(fontSize: heart.size, color: Colors.redAccent.withOpacity(opacity)),
-      );
-      painter.layout();
-
-      final dx = heart.position.dx * size.width;
-      final dy = heart.position.dy * size.height;
-      canvas.save();
-      canvas.translate(dx, dy);
-      canvas.rotate(animationValue + heart.rotation);
-      painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
-      canvas.restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _HeartFieldPainter old) =>
-      old.animationValue != animationValue;
-}
-
-/// Widget que muestra el fondo animado de corazones.
-class AnimatedHeartBackground extends StatefulWidget {
-  const AnimatedHeartBackground({Key? key}) : super(key: key);
-  @override
-  _AnimatedHeartBackgroundState createState() => _AnimatedHeartBackgroundState();
-}
-
-class _AnimatedHeartBackgroundState extends State<AnimatedHeartBackground>
-    with TickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
-  late final List<_Heart> _hearts;
-
-  @override
-  void initState() {
-    super.initState();
-    final rnd = Random();
-    _hearts = List.generate(80, (_) => _Heart(
-          position: Offset(rnd.nextDouble(), rnd.nextDouble()),
-          size: rnd.nextDouble() * 20 + 15,
-          rotation: rnd.nextDouble() * 2 * pi,
-          twinkleOffset: rnd.nextDouble() * 2 * pi,
-        ));
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (_, __) {
-        return CustomPaint(
-          size: Size.infinite,
-          painter: _HeartFieldPainter(
-            hearts: _hearts,
-            animationValue: _animation.value,
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Pantalla de favoritos con fondo animado y listado de películas.
 class FavoritosPage extends StatelessWidget {
   const FavoritosPage({Key? key}) : super(key: key);
 
-  Future<String?> _getUserUid() async => FirebaseAuth.instance.currentUser?.uid;
+  /// Obtiene el UID del usuario actual.
+  Future<String?> getUserUid() async {
+    return FirebaseAuth.instance.currentUser?.uid;
+  }
 
   /// Elimina la película de favoritos para el usuario actual.
   Future<void> removeFavorite(Map<String, dynamic> movie) async {
@@ -124,21 +27,47 @@ class FavoritosPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final username = ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
-      appBar: Barra(title: 'Favoritos', username: username),
+      backgroundColor: Colors.black,
+      appBar: Barra(username: username,title: "",),
       drawer: Draww(username: username),
-      body: Stack(
-        children: [
-          const Positioned.fill(child: AnimatedHeartBackground()),
-          FutureBuilder<String?>(
-            future: _getUserUid(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<String?>(
+        future: getUserUid(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final uid = snapshot.data;
+          if (uid == null) {
+            return const Center(
+              child: Text(
+                "No se encontró usuario",
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            );
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection("favoritos")
+                .where("userId", isEqualTo: uid)
+                .orderBy("timestamp", descending: true)
+                .snapshots(),
+            builder: (context, favSnapshot) {
+              if (favSnapshot.hasError) {
+                return Center(
+                  child: Text("Error: ${favSnapshot.error}",
+                      style: const TextStyle(color: Colors.white)),
+                );
+              }
+              if (favSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final uid = snapshot.data;
-              if (uid == null) {
+              final docs = favSnapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
                 return const Center(
-                  child: Text('No se encontró usuario', style: TextStyle(color: Colors.white)),
+                  child: Text(
+                    "No tienes favoritos",
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
                 );
               }
               // Cada documento contiene el campo "movie" con la información de la película.
@@ -232,9 +161,106 @@ class FavoritosPage extends StatelessWidget {
                 },
               );
             },
-          ),
-        ],
+          );
+        },
       ),
     );
   }
+}
+
+class AnimatedHeartBackground extends StatefulWidget {
+  const AnimatedHeartBackground({Key? key}) : super(key: key);
+  @override
+  _AnimatedHeartBackgroundState createState() => _AnimatedHeartBackgroundState();
+}
+
+class _AnimatedHeartBackgroundState extends State<AnimatedHeartBackground>
+    with TickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+  late final List<_Heart> _hearts;
+
+  @override
+  void initState() {
+    super.initState();
+    final rnd = Random();
+    _hearts = List.generate(80, (_) => _Heart(
+          position: Offset(rnd.nextDouble(), rnd.nextDouble()),
+          size: rnd.nextDouble() * 20 + 15,
+          rotation: rnd.nextDouble() * 2 * pi,
+          twinkleOffset: rnd.nextDouble() * 2 * pi,
+        ));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (_, __) {
+        return CustomPaint(
+          size: Size.infinite,
+          painter: _HeartFieldPainter(
+            hearts: _hearts,
+            animationValue: _animation.value,
+          ),
+        );
+      },
+    );
+  }
+}
+
+
+class _HeartFieldPainter extends CustomPainter {
+  final List<_Heart> hearts;
+  final double animationValue;
+  _HeartFieldPainter({required this.hearts, required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final painter = TextPainter(textDirection: TextDirection.ltr);
+    for (final heart in hearts) {
+      final opacity = 0.5 + 0.5 * sin(animationValue + heart.twinkleOffset);
+      painter.text = TextSpan(
+        text: '❤️',
+        style: TextStyle(fontSize: heart.size, color: Colors.redAccent.withOpacity(opacity)),
+      );
+      painter.layout();
+
+      final dx = heart.position.dx * size.width;
+      final dy = heart.position.dy * size.height;
+      canvas.save();
+      canvas.translate(dx, dy);
+      canvas.rotate(animationValue + heart.rotation);
+      painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeartFieldPainter old) =>
+      old.animationValue != animationValue;
+}
+
+class _Heart {
+  final Offset position;
+  final double size;
+  final double rotation;
+  final double twinkleOffset;
+  _Heart({
+    required this.position,
+    required this.size,
+    required this.rotation,
+    required this.twinkleOffset,
+  });
 }
