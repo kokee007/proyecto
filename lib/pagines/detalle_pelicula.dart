@@ -346,6 +346,7 @@ class DetallePelicula extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 16),
+                  // Nuevo botón para agregar la película a una lista.
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.secondary,

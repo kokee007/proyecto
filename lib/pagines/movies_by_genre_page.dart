@@ -275,6 +275,23 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
   void initState() {
     super.initState();
     _cargarPeliculasApi();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // Escucha el scroll para detectar cuando se acerca al final.
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100 &&
+        !_isLoadingMore &&
+        _searchQuery.isEmpty) {
+      _loadMoreMovies();
+    }
   }
 
   Future<void> _cargarPeliculasApi() async {
