@@ -263,6 +263,7 @@ class _Pagina1State extends State<Pagina1> {
             ? 'https://image.tmdb.org/t/p/w500${movie.posterPath}'
             : '',
         "release_date": item["release_date"] ?? "",
+        "original_language": item["original_language"] as String? ?? "",
         "vote_average":
             double.tryParse(item["vote_average"]?.toString() ?? "0") ?? 0,
       };

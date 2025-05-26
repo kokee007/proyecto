@@ -375,8 +375,6 @@ class DetallePelicula extends StatelessWidget {
                           _buildInfoRow(context, "Fecha",
                               movie["release_date"] ?? ""),
                           _buildInfoRow(context, "Idioma", idioma),
-                          _buildInfoRow(context, "Duración",
-                              "${movie["runtime"]} minutos"),
                           if ((movie["tagline"] ?? "").toString().isNotEmpty)
                             Padding(
                               padding:

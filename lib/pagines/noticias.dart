@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class Noticias extends StatefulWidget {
   const Noticias({Key? key}) : super(key: key);
+
   @override
   State<Noticias> createState() => _NoticiasState();
 }
@@ -33,24 +34,35 @@ class _NoticiasState extends State<Noticias> {
           .toIso8601String();
       final url = Uri.parse("$endpoint&from=$from&apiKey=$apiKey");
       final res = await http.get(url);
+
       if (res.statusCode == 200) {
         final data = json.decode(res.body) as Map<String, dynamic>;
+        final raw = data['articles'] as List<dynamic>;
+
+        // Filtramos para que sólo queden los artículos con imagen válida
+        final soloConImagen = raw.where((item) {
+          final img = item['urlToImage'] as String?;
+          return img != null && img.isNotEmpty;
+        }).toList();
+
         setState(() {
-          articles = data['articles'] as List<dynamic>;
+          articles = soloConImagen;
           isLoading = false;
         });
       } else {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text("Error al cargar noticias: ${res.statusCode}")),
+            content:
+                Text("Error al cargar noticias: ${res.statusCode}"),
+          ),
         );
       }
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     }
   }
 
@@ -58,8 +70,9 @@ class _NoticiasState extends State<Noticias> {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri,
         mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("No pude abrir $url")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No pude abrir $url")),
+      );
     }
   }
 
@@ -90,6 +103,7 @@ class _NoticiasState extends State<Noticias> {
     final imgUrl = art["urlToImage"] as String?;
     final title = art["title"] as String? ?? "Sin título";
     final desc = art["description"] as String? ?? "";
+
     return Container(
       margin:
           const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -107,63 +121,62 @@ class _NoticiasState extends State<Noticias> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (imgUrl != null && imgUrl.isNotEmpty)
-            ClipRRect(
-  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-  child: Image.network(
-    imgUrl,
-    height: 200,
-    fit: BoxFit.cover,
-    errorBuilder: (ctx, error, stack) {
-      // Opción A: usar un asset local como placeholder
-      // Opción B: mostrar un icono sencillo
-      return Container(
-         height: 200,
-         color: theme.dividerColor,
-         alignment: Alignment.center,
-         child: Icon(Icons.broken_image, size: 48, color: theme.hintColor),
-       );
-    },
-  ),
-)
-          else
-            Container(
+          // Como ya filtramos, siempre habrá imagen válida.
+          ClipRRect(
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(15)),
+            child: Image.network(
+              imgUrl!,
               height: 200,
-              color: theme.dividerColor,
-              alignment: Alignment.center,
-              child: Icon(Icons.image,
-                  color: theme.iconTheme.color, size: 50),
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, error, stack) {
+                return Container(
+                  height: 200,
+                  color: theme.dividerColor,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.broken_image,
+                      size: 48, color: theme.hintColor),
+                );
+              },
             ),
+          ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium!
-                        .copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium!
+                      .copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                Text(desc,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall!
-                        .copyWith(color: theme.hintColor)),
+                Text(
+                  desc,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall!
+                      .copyWith(color: theme.hintColor),
+                ),
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () =>
-                        art["url"] != null ? _launchUrl(art["url"]) : null,
-                    child: Text("Leer más",
-                        style: theme.textTheme.bodyMedium!
-                            .copyWith(
-                                color: theme
-                                    .colorScheme.secondary,
-                                fontWeight:
-                                    FontWeight.bold)),
+                        art["url"] != null
+                            ? _launchUrl(art["url"])
+                            : null,
+                    child: Text(
+                      "Leer más",
+                      style: theme.textTheme.bodyMedium!
+                          .copyWith(
+                              color:
+                                  theme.colorScheme.secondary,
+                              fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -194,7 +207,8 @@ class _NoticiasState extends State<Noticias> {
       body: isLoading
           ? Center(
               child: CircularProgressIndicator(
-                  color: theme.colorScheme.secondary))
+                  color: theme.colorScheme.secondary),
+            )
           : RefreshIndicator(
               color: theme.colorScheme.secondary,
               onRefresh: fetchNoticias,
