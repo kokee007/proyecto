@@ -3,7 +3,8 @@ import 'package:proyecto/auth/servei_auth.dart';
 import 'package:proyecto/auth/servei_auth.dart'; // Asegúrate de que la ruta de importación sea la correcta
 
 class RegistroPage extends StatefulWidget {
-  const RegistroPage({Key? key}) : super(key: key);
+  final Function()? ferClic;
+  const RegistroPage({Key? key, required this.ferClic}) : super(key: key);
 
   @override
   State<RegistroPage> createState() => _RegistroPageState();

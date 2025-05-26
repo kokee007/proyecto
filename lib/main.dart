@@ -57,8 +57,8 @@ class MainApp extends StatelessWidget {
           ),
           initialRoute: '/login',
           routes: {
-            '/login': (context) => const LoginPage(),
-            '/registro': (context) => const RegistroPage(),
+            '/login': (context) => LoginPage(ferClic: (){},),
+            '/registro': (context) => RegistroPage(ferClic: () {},),
             '/': (context)     => const Pagina1(),
             '/pagina1': (ctx) => const Pagina1(),
             '/all_movies_page':    (ctx) => const AllMoviesPage(),

@@ -605,34 +605,6 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     return Column(
       children: [
         // Campo de búsqueda
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            decoration: InputDecoration(
-              labelText: "Buscar película",
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _searchQuery = "";
-                  });
-                  _currentPage = 1;
-                  _cargarPeliculasApi();
-                },
-              ),
-            ),
-            onSubmitted: (query) {
-              _searchMovies(query);
-            },
-            onChanged: (query) {
-              if (query.isEmpty) {
-                _currentPage = 1;
-                _searchMovies("");
-              }
-            },
-          ),
-        ),
         // Si se está buscando, muestra un grid sin agrupar
         if (isSearching)
           Padding(
@@ -820,7 +792,16 @@ class _MoviesByGenrePageState extends State<MoviesByGenrePage> {
     return Scaffold(
       // Fondo transparente para que se vea el fondo animado
       backgroundColor: Colors.transparent,
-      appBar: Barra(username: username, title: "Movies by Genre"),
+      appBar: Barra(
+        title: "Movies by Genre",
+        username: username,
+        onSearchTap: () {
+          showSearch(
+            context: context,
+            delegate: MovieSearchDelegate(),
+          );
+        },
+      ),
       drawer: Draww(username: username),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,

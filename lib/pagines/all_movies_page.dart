@@ -539,34 +539,6 @@ class _AllMoviesPageState extends State<AllMoviesPage> {
                 ),
               ],
             ),
-            child: TextField(
-              style: const TextStyle(color: Colors.black),
-              decoration: InputDecoration(
-                hintText: "Buscar película...",
-                hintStyle: const TextStyle(color: Colors.grey),
-                border: InputBorder.none,
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.grey),
-                  onPressed: () {
-                    setState(() {
-                      _searchQuery = "";
-                    });
-                    _currentPage = 1;
-                    _cargarPeliculasApi();
-                  },
-                ),
-              ),
-              onSubmitted: (query) {
-                _searchMovies(query);
-              },
-              onChanged: (query) {
-                if (query.isEmpty) {
-                  _currentPage = 1;
-                  _searchMovies("");
-                }
-              },
-            ),
           ),
         ),
         // Grid con las películas

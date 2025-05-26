@@ -1,5 +1,5 @@
 // lib/pagines/detalle_pelicula.dart
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:proyecto/api/tmdb_api.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -78,6 +78,87 @@ class DetallePelicula extends StatelessWidget {
         const SnackBar(content: Text('No se pudo abrir el trailer')),
       );
     }
+  }
+
+  /// 1) Muestra lista de tus documentes "listas" para elegir destino
+  Future<void> _showListSelectionDialog(BuildContext ctx) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('Debes iniciar sesión para ver tus listas')),
+      );
+      return;
+    }
+
+    // Recupera tus listas
+    final snap = await FirebaseFirestore.instance
+        .collection('listas')              // <-- tu colección de listas
+        .where('userId', isEqualTo: user.uid)
+        .orderBy('createdAt', descending: true)
+        .get();
+
+    final listas = snap.docs;
+    if (listas.isEmpty) {
+      return showDialog(
+        context: ctx,
+        builder: (_) => AlertDialog(
+          title: const Text('Selecciona una lista'),
+          content: const Text('No tienes ninguna lista creada.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+          ],
+        ),
+      );
+    }
+
+    // Construye el diálogo
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('Selecciona una lista'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: listas.length,
+            itemBuilder: (context, i) {
+              final doc = listas[i];
+              final data = doc.data() as Map<String, dynamic>;
+
+              // Campo que contiene el nombre de tu lista
+              final listName = data['listName'] as String? ?? '<sin nombre>';
+
+              return ListTile(
+                title: Text(listName),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _addToSpecificList(ctx, doc.id, listName);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+        ],
+      ),
+    );
+  }
+
+  /// 2) Añade la película al array "movies" de la lista elegida
+  Future<void> _addToSpecificList(
+      BuildContext ctx, String listId, String listName) async {
+    final ref = FirebaseFirestore.instance
+        .collection('listas')
+        .doc(listId);
+
+    await ref.update({
+      'movies': FieldValue.arrayUnion([movie])
+    });
+
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(content: Text('Película añadida a “$listName”')),
+    );
   }
 
   void _showAddCommentDialog(BuildContext ctx, int movieId) {
@@ -266,7 +347,7 @@ class DetallePelicula extends StatelessWidget {
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                  ),
+                  )
                 ],
               ),
             ),
@@ -314,13 +395,14 @@ class DetallePelicula extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Botón de trailer
                   FutureBuilder<String?>(
                     future: movieId != 0
                         ? TmdbApi().fetchTrailerKey(movieId: movieId)
                         : Future.value(null),
                     builder: (ctx, snap) {
-                      if (snap.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snap.connectionState == ConnectionState.waiting) {
                         return const Center(
                             child: CircularProgressIndicator());
                       } else if (snap.hasData && snap.data != null) {
@@ -346,7 +428,24 @@ class DetallePelicula extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 16),
-                  // Nuevo botón para agregar la película a una lista.
+
+                  // Botón: abre diálogo para seleccionar lista
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.secondary,
+                      foregroundColor: theme.colorScheme.onSecondary,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 16),
+                    ),
+                    onPressed: () => _showListSelectionDialog(context),
+                    icon: Icon(Icons.playlist_add,
+                        color: theme.iconTheme.color),
+                    label: Text("Agregar a mi lista",
+                        style: theme.textTheme.labelLarge),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Botón de comentarios
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.secondary,
@@ -362,11 +461,11 @@ class DetallePelicula extends StatelessWidget {
                         style: theme.textTheme.labelLarge),
                   ),
                   const SizedBox(height: 16),
+
                   Divider(color: theme.dividerColor),
                   Text("Comentarios:",
                       style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 8),
-                  // <-- aquí pasamos el contexto
                   _buildCommentsList(context, movieId),
                 ],
               ),

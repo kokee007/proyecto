@@ -109,21 +109,23 @@ class _NoticiasState extends State<Noticias> {
         children: [
           if (imgUrl != null && imgUrl.isNotEmpty)
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(15)),
-              child: Image.network(
-                imgUrl,
-                height: 200,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200,
-                  color: theme.dividerColor,
-                  alignment: Alignment.center,
-                  child: Icon(Icons.image_not_supported,
-                      color: theme.iconTheme.color, size: 50),
-                ),
-              ),
-            )
+  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+  child: Image.network(
+    imgUrl,
+    height: 200,
+    fit: BoxFit.cover,
+    errorBuilder: (ctx, error, stack) {
+      // Opción A: usar un asset local como placeholder
+      // Opción B: mostrar un icono sencillo
+      return Container(
+         height: 200,
+         color: theme.dividerColor,
+         alignment: Alignment.center,
+         child: Icon(Icons.broken_image, size: 48, color: theme.hintColor),
+       );
+    },
+  ),
+)
           else
             Container(
               height: 200,

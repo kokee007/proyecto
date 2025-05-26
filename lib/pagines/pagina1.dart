@@ -431,7 +431,7 @@ class _Pagina1State extends State<Pagina1> {
           ),
         ),
         SizedBox(
-          height: 240,
+          height: 250,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: cineNews.length,
@@ -493,7 +493,7 @@ class _Pagina1State extends State<Pagina1> {
                               ),
                       ),
                       Container(
-                        height: 100,
+                        height: 108,
                         color: theme.cardColor,
                         padding: const EdgeInsets.all(8),
                         child: Column(
@@ -725,30 +725,45 @@ class _Pagina1State extends State<Pagina1> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final username = ModalRoute.of(context)?.settings.arguments as String?;
-    return Scaffold(
-      drawer: Draww(username: username),
-      appBar: Barra(
-        title: "Inicio",
-        username: username,
-        onSearchTap: () {
-          showSearch(
-            context: context,
-            delegate: MovieSearchDelegate(),
-          );
-        },
-      ),
-      body: Stack(
-        children: [
-          const Positioned.fill(child: AnimatedGradientBackground()),
-          SingleChildScrollView(child: _buildContent()),
-        ],
-      ),
-    );
-  }
+ @override
+Widget build(BuildContext context) {
+  final username = ModalRoute.of(context)?.settings.arguments as String?;
+  return Scaffold(
+    drawer: Draww(username: username),
+    appBar: Barra(
+      title: "Inicio",
+      username: username,
+      onSearchTap: () {
+        showSearch(
+          context: context,
+          delegate: MovieSearchDelegate(),
+        );
+      },
+    ),
+    body: Stack(
+      children: [
+        // 1) Tu fondo animado siempre detrás:
+        const Positioned.fill(child: AnimatedGradientBackground()),
+
+        // 2) El scroll, forzado a ocuparse TODO el área útil:
+        Positioned.fill(
+          child: SafeArea(
+            bottom: true,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 32),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: _buildContent(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
+  }
+
 
 /// SEARCH DELEGATE PARA LA LUPA
 class MovieSearchDelegate extends SearchDelegate {
