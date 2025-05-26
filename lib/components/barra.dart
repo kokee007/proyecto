@@ -1,59 +1,82 @@
 import 'package:flutter/material.dart';
 
 class Barra extends StatelessWidget implements PreferredSizeWidget {
-  final String? username; // Nombre del usuario, opcional
+  final String title;             // Título dinámico (p.ej. "Home", "Movies", etc.)
+  final String? username;         // Nombre de usuario (opcional)
+  final VoidCallback? onSearchTap; // Acción al pulsar la lupa (opcional)
 
-  const Barra({super.key, this.username});
+  const Barra({
+    Key? key,
+    required this.title,
+    this.username,
+    this.onSearchTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.grey[700],
-      title: Row(
+    // Mapa de traducciones: si el título recibido es una clave, se mostrará su valor en español.
+    final Map<String, String> titleTranslations = {
+      "Home": "Inicio",
+      "Movies": "Películas",
+      "News": "Noticias",
+      "Favorites": "Favoritos",
+      "Genres": "Géneros",
+      "Settings": "Configuración",
+      "About": "Acerca de",
+      "All Movies": "Todas las películas",
+      "Movies by Genre": "Películas por género"
+    };
+
+    // Si existe una traducción para el título, se usará, de lo contrario se mostrará el título recibido.
+    final String displayTitle = titleTranslations[title] ?? title;
+
+    return Container(
+      color: Colors.grey[700],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            "FILM REVIEWER",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          AppBar(
+            backgroundColor: Colors.grey[700],
+            elevation: 0,
+            title: Row(
+              children: [
+                // Título dinámico traducido
+                Expanded(
+                  child: Text(
+                    displayTitle,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                // Botón de búsqueda
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: onSearchTap,
+                ),
+                // Muestra el nombre del usuario si está disponible
+                if (username != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      username!,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(width: 30),
-          // Campo de búsqueda
-          const SizedBox(width: 10),
-          // Si ya hay un usuario logueado, se muestra su nombre
-          if (username != null)
-            Text(
-              username!,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            )
-          else ...[
-            // Si no hay usuario, se muestran los botones de Iniciar sesión y Registrarse
-            TextButton(
-              onPressed: () {
-                // Acción de iniciar sesión (por ejemplo, navegar a la pantalla de login)
-              },
-              child: const Text(
-                'Iniciar sesión',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 10),
-            TextButton(
-              onPressed: () {
-                // Acción de registrarse (por ejemplo, navegar a la pantalla de registro)
-              },
-              child: const Text(
-                'Registrarse',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+          // Línea divisoria roja debajo de la AppBar
+          Container(
+            height: 2,
+            color: Colors.red,
+          ),
         ],
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 2);
 }

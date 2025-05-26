@@ -7,7 +7,7 @@ class TmdbApi {
   final String _baseUrl = 'https://api.themoviedb.org/3';
 
   Future<List<dynamic>> fetchPopularMovies({int page = 1}) async {
-    final url = Uri.parse('$_baseUrl/movie/popular?api_key=$_apiKey&page=$page');
+    final url = Uri.parse('$_baseUrl/movie/popular?api_key=$_apiKey&page=$page&language=us-US');
     final response = await http.get(url);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -18,7 +18,7 @@ class TmdbApi {
   }
 
   Future<List<dynamic>> fetchGenres() async {
-    final url = Uri.parse('$_baseUrl/genre/movie/list?api_key=$_apiKey&language=es-ES');
+    final url = Uri.parse('$_baseUrl/genre/movie/list?api_key=$_apiKey&language=us-US');
     final response = await http.get(url);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -29,7 +29,7 @@ class TmdbApi {
   }
 
   Future<List<dynamic>> searchMovies({required String query, int page = 1}) async {
-    final url = Uri.parse('$_baseUrl/search/movie?api_key=$_apiKey&query=$query&page=$page');
+    final url = Uri.parse('$_baseUrl/search/movie?api_key=$_apiKey&query=$query&page=$page&language=us-US');
     final response = await http.get(url);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -40,7 +40,7 @@ class TmdbApi {
   }
 
   Future<List<dynamic>> fetchUpcomingMovies({int page = 1}) async {
-    final url = Uri.parse('$_baseUrl/movie/upcoming?api_key=$_apiKey&page=$page&language=es-ES');
+    final url = Uri.parse('$_baseUrl/movie/upcoming?api_key=$_apiKey&page=$page&language=us-US');
     final response = await http.get(url);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -49,10 +49,22 @@ class TmdbApi {
       throw Exception('Error al cargar próximos estrenos');
     }
   }
+  /// Devuelve el JSON completo de la película, incluyendo runtime, tagline, etc.
+Future<Map<String, dynamic>> fetchMovieDetails({ required int movieId }) async {
+  final url = Uri.parse('$_baseUrl/movie/$movieId?api_key=$_apiKey&language=us-US');
+  final response = await http.get(url);
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  } else {
+    throw Exception('Error al cargar detalles de la película');
+  }
+}
+  
+  
 
   // Método para obtener la clave del trailer de una película
   Future<String?> fetchTrailerKey({required int movieId}) async {
-    final url = Uri.parse('$_baseUrl/movie/$movieId/videos?api_key=$_apiKey&language=en-US');
+    final url = Uri.parse('$_baseUrl/movie/$movieId/videos?api_key=$_apiKey&language=us-US');
     final response = await http.get(url);
     debugPrint("Respuesta de videos para movieId $movieId: ${response.body}");
     if (response.statusCode == 200) {

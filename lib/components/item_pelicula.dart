@@ -1,116 +1,105 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 
 class ItemPelicula extends StatelessWidget {
   final String textPeli;
   final String descripcio;
-  final String imatge;
-  final bool valorCheckBox; // Indica si es favorito o no
+  final String imatge; 
+  final bool valorCheckBox;
   final ValueChanged<bool?>? canviaValorCheckbox;
   final Function(BuildContext)? esborraPeli;
+  final bool showHeart; // para mostrar/ocultar el corazón
 
   const ItemPelicula({
-    super.key,
+    Key? key,
     required this.textPeli,
     required this.descripcio,
     required this.imatge,
-    required this.valorCheckBox,
-    required this.canviaValorCheckbox,
-    required this.esborraPeli,
-  });
+    this.valorCheckBox = false,
+    this.canviaValorCheckbox,
+    this.esborraPeli,
+    this.showHeart = true,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Slidable(
-        // Acción de borrado con deslizamiento
-        endActionPane: ActionPane(
-          motion: const StretchMotion(),
-          children: [
-            SlidableAction(
-              icon: Icons.delete,
-              backgroundColor: Colors.purple,
-              borderRadius: BorderRadius.circular(10),
-              onPressed: esborraPeli,
-            ),
+    final theme = Theme.of(context);
+    return AspectRatio(
+      aspectRatio: 0.65,
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(0.25),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
           ],
         ),
-        child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 4,
-          clipBehavior: Clip.antiAlias,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Imagen de la película
               Expanded(
                 child: imatge.isNotEmpty
                     ? Image.network(
                         imatge,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.broken_image,
-                            size: 40,
-                            color: Colors.grey,
+                        errorBuilder: (ctx, _, __) => Container(
+                          color: theme.dividerColor,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: theme.iconTheme.color,
                           ),
                         ),
                       )
                     : Container(
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.movie,
-                          size: 40,
-                          color: Colors.grey,
+                        color: theme.dividerColor,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.image,
+                          size: 50,
+                          color: theme.iconTheme.color,
                         ),
                       ),
               ),
-              // Título
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  textPeli,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal[800],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // Descripción
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  descripcio,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ),
-              // Fila inferior con icono de corazón para marcar como favorito
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      valorCheckBox ? Icons.favorite : Icons.favorite_border,
-                      color: valorCheckBox ? Colors.red : Colors.grey,
+              Container(
+                color: theme.scaffoldBackgroundColor,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        textPeli,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium!
+                            .copyWith(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    onPressed: () {
-                      // Se invierte el estado y se llama al callback
-                      canviaValorCheckbox?.call(!valorCheckBox);
-                    },
-                  ),
-                ],
+                    if (showHeart)
+                      IconButton(
+                        icon: Icon(
+                          valorCheckBox
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: valorCheckBox
+                              ? theme.colorScheme.secondary
+                              : theme.iconTheme.color,
+                        ),
+                        onPressed: () {
+                          if (canviaValorCheckbox != null) {
+                            canviaValorCheckbox!(!valorCheckBox);
+                          }
+                        },
+                      ),
+                  ],
+                ),
               ),
             ],
           ),

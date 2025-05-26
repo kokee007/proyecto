@@ -3,7 +3,8 @@ import 'package:proyecto/auth/servei_auth.dart';
 import 'package:proyecto/auth/servei_auth.dart'; // Asegúrate de que la ruta de importación sea correcta
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final Function()? ferClic;
+  const LoginPage({super.key, required this.ferClic});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
